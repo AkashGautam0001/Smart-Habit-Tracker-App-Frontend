@@ -1,0 +1,18 @@
+User-agent: *
+Allow: /
+Allow: /pricing
+Disallow: /api/
+Disallow: /dashboard
+Disallow: /habits
+Disallow: /focus
+Disallow: /tasks
+Disallow: /analytics
+Disallow: /calendar
+Disallow: /goals
+Disallow: /projects
+Disallow: /journal
+Disallow: /achievements
+Disallow: /settings
+Disallow: /upgrade
+
+Sitemap: https://habitflow.app/sitemap.xml

@@ -1,0 +1,34 @@
+# HabitFlow — Habit Tracker + Pomodoro Learning OS
+
+> A modern productivity web app combining habit tracking, Pomodoro focus timer, study analytics, and streak gamification. Built for students and developers who want to track daily habits and deep work sessions in one place.
+
+## What this app does
+- Track daily habits with streaks, completion logs, and calendar heatmaps
+- Pomodoro focus timer (25/5/15 min) linked to learning tasks and subjects
+- Automatic study time logging per subject (DSA, React, English, Backend, etc.)
+- XP system, achievements, and level progression
+- GitHub-style contribution heatmap for habits and study sessions
+- AI coaching and weekly reviews (Pro) powered by Claude
+- PWA — installable on desktop and mobile
+
+## Key pages
+- / — Landing page with features and pricing
+- /pricing — Free vs Pro plan comparison
+- /dashboard — Daily overview, progress, streaks
+- /habits — Manage and track daily habits
+- /focus — Pomodoro sessions with task linking
+- /analytics — Charts, heatmap, subject breakdown
+- /achievements — XP, levels, badges
+
+## Pricing
+- Free: 10 habits, unlimited Pomodoro, basic analytics, cloud sync
+- Pro: ₹149/month or ₹1,499/year — unlimited everything + AI coach + advanced analytics
+
+## Tech stack
+React, TypeScript, Vite, Node.js, Express, MongoDB, Tailwind CSS, Framer Motion, Phosphor Icons
+
+## Target users
+Students, developers, self-learners who want to build consistent study habits and track focus sessions
+
+## Contact
+support@habitflow.app

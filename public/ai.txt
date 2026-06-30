@@ -1,0 +1,28 @@
+# HabitFlow — AI Crawler Manifest
+
+This file mirrors /llms.txt and is provided for broader AI tool compatibility.
+
+See /llms.txt for the full machine-readable description of this application.
+
+## Quick Summary
+
+**App:** HabitFlow — Habit Tracker + Pomodoro Learning OS
+**Category:** Productivity / EdTech
+**Audience:** Students, developers, self-learners
+**Pricing:** Free (10 habits, unlimited Pomodoro) + Pro ₹149/month
+
+## What HabitFlow does
+1. Habit tracking with streaks, calendar heatmap, and gamification (XP, levels, achievements)
+2. Pomodoro focus timer (25/5/15 min) that auto-logs sessions to learning subjects
+3. Study analytics — time per subject, focus score, best hours, trend charts
+4. AI coaching (Pro) — daily review and weekly study plan via Claude API
+5. PWA — installable on mobile and desktop, works offline
+
+## Public pages for crawlers
+- https://habitflow.app/          → Landing page
+- https://habitflow.app/pricing   → Plan comparison
+- https://habitflow.app/sitemap.xml
+- https://habitflow.app/llms.txt
+
+## Contact
+support@habitflow.app
