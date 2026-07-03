@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import Sidebar from './Sidebar';
@@ -6,55 +6,34 @@ import BottomNav from './BottomNav';
 import Header from './Header';
 import PageTransition from './PageTransition';
 import AchievementToast from '../shared/AchievementToast';
-import Toast from '../shared/Toast';
 import InstallBanner from '../shared/InstallBanner';
 import { useSettings } from '../../hooks/useSettings';
-
-const MOBILE_BP = 768;
+import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
 
 export default function AppLayout() {
   const settings = useSettings();
   const [collapsed, setCollapsed] = useState(settings.sidebarCollapsed ?? false);
-  const [isMobile, setIsMobile] = useState(window.innerWidth < MOBILE_BP);
+  const isMobile = useIsMobile();
   const location = useLocation();
 
-  useEffect(() => {
-    const handler = () => setIsMobile(window.innerWidth < MOBILE_BP);
-    window.addEventListener('resize', handler);
-    return () => window.removeEventListener('resize', handler);
-  }, []);
-
   return (
-    <div style={{
-      display: 'flex',
-      minHeight: '100dvh',
-      width: '100%',
-      background: 'var(--color-bg)',
-    }}>
-      {/* Desktop sidebar */}
+    <div className="flex min-h-dvh w-full bg-background">
       {!isMobile && (
         <Sidebar collapsed={collapsed} onToggle={() => setCollapsed((c) => !c)} />
       )}
 
-      {/* Main column */}
-      <div style={{
-        display: 'flex',
-        flex: 1,
-        flexDirection: 'column',
-        minWidth: 0,
-        overflow: 'hidden',
-      }}>
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <Header />
 
-        <main style={{
-          flex: 1,
-          overflowY: 'auto',
-          overflowX: 'hidden',
-          padding: isMobile ? '16px' : '24px 28px',
-          paddingBottom: isMobile
-            ? `calc(64px + var(--safe-bottom) + 16px)`
-            : '32px',
-        }}>
+        <main
+          className={cn(
+            'flex-1 overflow-x-hidden overflow-y-auto',
+            isMobile
+              ? 'px-4 pt-4 pb-[calc(4rem+var(--safe-bottom)+1rem)]'
+              : 'px-6 py-6 md:px-7 md:pb-8',
+          )}
+        >
           <AnimatePresence mode="wait">
             <PageTransition key={location.pathname}>
               <Outlet />
@@ -63,12 +42,9 @@ export default function AppLayout() {
         </main>
       </div>
 
-      {/* Mobile bottom nav */}
       {isMobile && <BottomNav />}
 
-      {/* Global toasts */}
       <AchievementToast />
-      <Toast />
       <InstallBanner />
     </div>
   );

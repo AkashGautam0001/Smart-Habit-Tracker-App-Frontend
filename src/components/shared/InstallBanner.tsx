@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DeviceMobileIcon, XIcon } from '@phosphor-icons/react';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 const DISMISSED_KEY = 'pwa-install-dismissed';
 
@@ -10,8 +12,8 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 export default function InstallBanner() {
-  const [prompt,   setPrompt]   = useState<BeforeInstallPromptEvent | null>(null);
-  const [visible,  setVisible]  = useState(false);
+  const [prompt, setPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [visible, setVisible] = useState(false);
   const [accepted, setAccepted] = useState(false);
 
   useEffect(() => {
@@ -50,67 +52,35 @@ export default function InstallBanner() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -32 }}
           transition={{ type: 'spring', stiffness: 300, damping: 26 }}
-          style={{
-            alignItems: 'center',
-            background: 'color-mix(in srgb, var(--color-accent) 10%, var(--color-surface))',
-            border: '1px solid color-mix(in srgb, var(--color-accent) 30%, transparent)',
-            borderRadius: 'var(--radius-lg)',
-            boxShadow: 'var(--shadow-lg)',
-            display: 'flex',
-            gap: 12,
-            left: '50%',
-            maxWidth: 420,
-            padding: '10px 14px',
-            position: 'fixed',
-            top: 16,
-            transform: 'translateX(-50%)',
-            width: 'calc(100% - 32px)',
-            zIndex: 500,
-          }}
+          className={cn(
+            'fixed top-4 left-1/2 z-[500] flex w-[calc(100%-2rem)] max-w-[420px] -translate-x-1/2',
+            'items-center gap-3 rounded-lg border border-primary/30 bg-card p-3 shadow-lg',
+          )}
         >
-          <div style={{
-            alignItems: 'center',
-            background: 'color-mix(in srgb, var(--color-accent) 18%, transparent)',
-            borderRadius: 8, color: 'var(--color-accent)',
-            display: 'flex', flexShrink: 0,
-            height: 34, justifyContent: 'center', width: 34,
-          }}>
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary">
             <DeviceMobileIcon size={18} weight="duotone" />
           </div>
 
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ color: 'var(--color-text)', fontSize: '0.82rem', fontWeight: 600 }}>
-              Install HabitFlow
-            </p>
-            <p style={{ color: 'var(--color-text-muted)', fontSize: '0.73rem' }}>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-foreground">Install HabitFlow</p>
+            <p className="text-xs text-muted-foreground">
               Add to home screen for the best experience
             </p>
           </div>
 
-          <button
-            onClick={handleInstall}
-            style={{
-              background: 'var(--color-accent)', border: 'none',
-              borderRadius: 'var(--radius-md)', color: '#fff',
-              cursor: 'pointer', flexShrink: 0,
-              fontSize: '0.78rem', fontWeight: 600,
-              minHeight: 'auto', minWidth: 'auto', padding: '6px 12px',
-            }}
-          >
+          <Button size="sm" onClick={handleInstall} className="shrink-0">
             Install
-          </button>
+          </Button>
 
-          <button
+          <Button
+            variant="ghost"
+            size="icon-sm"
             onClick={dismiss}
-            style={{
-              background: 'none', border: 'none',
-              color: 'var(--color-text-muted)', cursor: 'pointer',
-              display: 'flex', flexShrink: 0,
-              minHeight: 'auto', minWidth: 'auto', padding: 4,
-            }}
+            className="shrink-0"
+            aria-label="Dismiss install banner"
           >
-            <XIcon size={14} weight="bold" />
-          </button>
+            <XIcon size={14} weight="bold" className="text-muted-foreground" />
+          </Button>
         </motion.div>
       )}
     </AnimatePresence>

@@ -1,8 +1,9 @@
 import { useEffect } from 'react';
 import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
+import { cn } from '@/lib/utils';
 
 interface Props {
-  pct: number;         // 0-100
+  pct: number;
   size?: number;
   color?: string;
   trackColor?: string;
@@ -14,8 +15,8 @@ interface Props {
 export default function ProgressRing({
   pct,
   size = 160,
-  color = 'var(--color-accent)',
-  trackColor = 'var(--color-surface-hover)',
+  color = 'var(--primary)',
+  trackColor = 'var(--secondary)',
   label,
   sublabel,
   strokeWidth = 7,
@@ -26,7 +27,6 @@ export default function ProgressRing({
   const circumference = 2 * Math.PI * r;
   const offset = circumference * (1 - Math.min(pct, 100) / 100);
 
-  // Animated counter using Framer Motion (avoids react-countup CJS interop issue)
   const count = useMotionValue(0);
   const rounded = useTransform(count, Math.round);
   const display = useTransform(rounded, (v: number) => `${v}%`);
@@ -36,12 +36,29 @@ export default function ProgressRing({
     return controls.stop;
   }, [pct, count]);
 
+  const glowColor =
+    color === 'var(--primary)'
+      ? 'color-mix(in srgb, var(--primary) 50%, transparent)'
+      : `${color}60`;
+
   return (
-    <div style={{ position: 'relative', width: size, height: size, flexShrink: 0 }}>
-      <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
-        <circle cx={cx} cy={cy} r={r} fill="none" stroke={trackColor} strokeWidth={strokeWidth} />
+    <div
+      className="relative shrink-0 w-(--ring-sz) h-(--ring-sz)"
+      style={{ '--ring-sz': `${size}px` } as React.CSSProperties}
+    >
+      <svg width={size} height={size} className="-rotate-90">
+        <circle
+          cx={cx}
+          cy={cy}
+          r={r}
+          fill="none"
+          stroke={trackColor}
+          strokeWidth={strokeWidth}
+        />
         <motion.circle
-          cx={cx} cy={cy} r={r}
+          cx={cx}
+          cy={cy}
+          r={r}
           fill="none"
           stroke={color}
           strokeWidth={strokeWidth}
@@ -50,32 +67,26 @@ export default function ProgressRing({
           initial={{ strokeDashoffset: circumference }}
           animate={{ strokeDashoffset: offset }}
           transition={{ duration: 1.1, ease: 'easeOut', delay: 0.15 }}
-          style={{ filter: `drop-shadow(0 0 5px ${color === 'var(--color-accent)' ? '#6366f180' : color + '60'})` }}
+          style={{ filter: `drop-shadow(0 0 5px ${glowColor})` }}
         />
       </svg>
 
-      <div style={{
-        alignItems: 'center', display: 'flex', flexDirection: 'column',
-        inset: 0, justifyContent: 'center', position: 'absolute',
-      }}>
-        <div style={{
-          color: 'var(--color-text)',
-          fontSize: size > 140 ? '1.8rem' : '1.25rem',
-          fontWeight: 700,
-          lineHeight: 1,
-          fontVariantNumeric: 'tabular-nums',
-        }}>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <div
+          className={cn(
+            'font-bold tabular-nums text-foreground',
+            size > 140 ? 'text-3xl' : 'text-xl',
+          )}
+        >
           <motion.span>{display}</motion.span>
         </div>
         {label && (
-          <div style={{ color: 'var(--color-text-secondary)', fontSize: '0.7rem', fontWeight: 500, marginTop: 3, textAlign: 'center' }}>
+          <div className="mt-0.5 text-center text-[0.7rem] font-medium text-muted-foreground">
             {label}
           </div>
         )}
         {sublabel && (
-          <div style={{ color: 'var(--color-text-muted)', fontSize: '0.65rem', marginTop: 1, textAlign: 'center' }}>
-            {sublabel}
-          </div>
+          <div className="mt-px text-center text-[0.65rem] text-muted-foreground">{sublabel}</div>
         )}
       </div>
     </div>

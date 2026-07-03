@@ -1,192 +1,237 @@
-import { NavLink, useNavigate } from 'react-router-dom';
-import * as Icons from '@phosphor-icons/react';
+import { Link, NavLink } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { CaretDoubleLeftIcon, CaretRightIcon, LightningIcon } from '@phosphor-icons/react';
 import { useAuthStore } from '../../store/authStore';
 import { useSettings } from '../../hooks/useSettings';
-import { NAV_ITEMS } from '../../config/nav.config';
-import { getLevelProgress } from '../../config/xp.config';
-import { authApi } from '../../api/auth';
+import { NAV_ITEMS, NAV_GROUPS } from '../../config/nav.config';
 import { APP_CONFIG } from '../../config/app.config';
+import NavIcon from './NavIcon';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 interface SidebarProps {
   collapsed: boolean;
   onToggle: () => void;
 }
 
-function NavIcon({ name, ...props }: { name: string; [k: string]: unknown }) {
-  const Icon = (Icons as unknown as Record<string, React.ElementType>)[name];
-  return Icon ? <Icon {...props} /> : null;
-}
+const navLinkClass = ({ isActive }: { isActive: boolean }) =>
+  cn(
+    'mb-0.5 flex min-h-[2.2rem] items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-all duration-150',
+    isActive
+      ? 'bg-linear-to-r from-primary to-[#8b5cf6] font-medium text-primary-foreground shadow-md shadow-primary/25'
+      : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+  );
 
 export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
-  const { user, logout } = useAuthStore();
+  const { user } = useAuthStore();
   useSettings();
-  const navigate = useNavigate();
 
-  const handleLogout = async () => {
-    await authApi.logout().catch(() => {});
-    logout();
-    navigate('/login');
-  };
-
-  const xpProgress = user ? getLevelProgress(user.xp, user.level) : 0;
+  const isPro = user?.plan === 'pro';
+  const dashboardItem = NAV_ITEMS.find((i) => i.id === 'dashboard') ?? NAV_ITEMS[0];
 
   return (
     <motion.aside
-      animate={{ width: collapsed ? 64 : 240 }}
-      transition={{ duration: 0.2, ease: 'easeInOut' }}
-      style={{
-        background: 'var(--color-surface)',
-        borderRight: '1px solid var(--color-border)',
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100dvh',
-        overflow: 'hidden',
-        position: 'sticky',
-        top: 0,
-        flexShrink: 0,
-        zIndex: 20,
-      }}
+      animate={{ width: collapsed ? 64 : 256 }}
+      transition={{ duration: 0.22, ease: 'easeInOut' }}
+      className="sticky top-0 z-20 flex h-dvh shrink-0 flex-col overflow-hidden border-r border-border bg-card"
     >
-      {/* Logo + collapse toggle */}
-      <div style={{
-        alignItems: 'center', display: 'flex', gap: 12,
-        justifyContent: collapsed ? 'center' : 'space-between',
-        padding: '20px 16px 16px',
-        borderBottom: '1px solid var(--color-border)',
-      }}>
+      {/* Brand header */}
+      <div
+        className={cn(
+          'flex h-14 shrink-0 items-center border-b border-border',
+          collapsed ? 'justify-center px-0' : 'gap-2.5 px-4',
+        )}
+      >
+        <button
+          onClick={collapsed ? onToggle : undefined}
+          aria-label={collapsed ? 'Expand sidebar' : undefined}
+          className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-linear-to-br from-primary to-[#8b5cf6] text-sm font-bold text-primary-foreground"
+        >
+          {APP_CONFIG.name.charAt(0)}
+        </button>
+
         <AnimatePresence mode="wait">
           {!collapsed && (
-            <motion.span
-              key="logo"
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              style={{ color: 'var(--color-accent)', fontWeight: 700, fontSize: '1.1rem', letterSpacing: '-0.03em', whiteSpace: 'nowrap' }}
+            <motion.div
+              key="brand"
+              initial={{ opacity: 0, x: -6 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -6 }}
+              transition={{ duration: 0.15 }}
+              className="flex min-w-0 flex-1 items-center justify-between gap-1"
             >
-              {APP_CONFIG.name}
-            </motion.span>
+              <div className="min-w-0">
+                <div className="truncate text-[0.95rem] font-bold tracking-tight text-foreground">
+                  {APP_CONFIG.name}
+                </div>
+                <div className="truncate text-[0.62rem] text-muted-foreground">
+                  {APP_CONFIG.tagline}
+                </div>
+              </div>
+              <button
+                onClick={onToggle}
+                aria-label="Collapse sidebar"
+                className="flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
+              >
+                <CaretDoubleLeftIcon size={13} weight="bold" />
+              </button>
+            </motion.div>
           )}
         </AnimatePresence>
-        <button
-          onClick={onToggle}
-          className="btn-ghost"
-          style={{ padding: 8, borderRadius: 8, minWidth: 'auto', minHeight: 'auto' }}
-          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-        >
-          <NavIcon name={collapsed ? 'SidebarSimple' : 'SidebarSimple'} size={18} weight="bold" color="var(--color-text-muted)" />
-        </button>
       </div>
 
-      {/* Nav items */}
-      <nav style={{ flex: 1, overflowY: 'auto', padding: '12px 8px' }}>
-        {NAV_ITEMS.map((item) => (
-          <NavLink
-            key={item.id}
-            to={item.path}
-            title={collapsed ? item.label : undefined}
-            style={({ isActive }) => ({
-              alignItems: 'center',
-              borderRadius: 10,
-              color: isActive ? 'var(--color-accent)' : 'var(--color-text-secondary)',
-              display: 'flex',
-              fontWeight: isActive ? 600 : 400,
-              gap: 12,
-              justifyContent: collapsed ? 'center' : 'flex-start',
-              marginBottom: 2,
-              minHeight: 44,
-              padding: collapsed ? '10px' : '10px 12px',
-              textDecoration: 'none',
-              transition: 'all 150ms ease',
-              background: isActive ? 'color-mix(in srgb, var(--color-accent) 12%, transparent)' : 'transparent',
-              fontSize: '0.9rem',
-              whiteSpace: 'nowrap',
-            })}
-          >
-            {({ isActive }) => (
-              <>
-                <NavIcon
-                  name={item.icon}
-                  size={20}
-                  weight={isActive ? 'fill' : 'duotone'}
-                  color={isActive ? 'var(--color-accent)' : 'var(--color-text-muted)'}
-                />
-                <AnimatePresence mode="wait">
-                  {!collapsed && (
-                    <motion.span
-                      key="label"
-                      initial={{ opacity: 0, width: 0 }}
-                      animate={{ opacity: 1, width: 'auto' }}
-                      exit={{ opacity: 0, width: 0 }}
-                      transition={{ duration: 0.15 }}
-                    >
-                      {item.label}
-                    </motion.span>
+      {/* Navigation */}
+      <nav className="flex-1 overflow-y-auto px-2 py-3">
+        {/* Dashboard — standalone, no group label */}
+        <NavLink
+          to={dashboardItem.path}
+          title={collapsed ? dashboardItem.label : undefined}
+          className={(state) => cn(navLinkClass(state), collapsed ? 'justify-center' : '', 'mb-4')}
+        >
+          {({ isActive }) => (
+            <>
+              <NavIcon
+                name={dashboardItem.icon}
+                size={18}
+                weight={isActive ? 'fill' : 'duotone'}
+                className={isActive ? 'shrink-0 text-primary-foreground' : 'shrink-0'}
+              />
+              <AnimatePresence mode="wait">
+                {!collapsed && (
+                  <motion.span
+                    key="label"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.12 }}
+                    className="truncate whitespace-nowrap"
+                  >
+                    {dashboardItem.label}
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </>
+          )}
+        </NavLink>
+
+        {NAV_GROUPS.filter((g) => g.id !== 'main').map((group) => {
+          const items = NAV_ITEMS.filter((i) => i.group === group.id);
+          if (items.length === 0) return null;
+
+          return (
+            <div key={group.id} className="mb-5 last:mb-0">
+              <AnimatePresence mode="wait">
+                {!collapsed && (
+                  <motion.p
+                    key={`label-${group.id}`}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.1 }}
+                    className="mb-1.5 px-3 text-[0.62rem] font-semibold uppercase tracking-widest text-muted-foreground/50"
+                  >
+                    {group.label}
+                  </motion.p>
+                )}
+              </AnimatePresence>
+
+              {items.map((item) => (
+                <NavLink
+                  key={item.id}
+                  to={item.path}
+                  title={collapsed ? item.label : undefined}
+                  className={(state) => cn(navLinkClass(state), collapsed ? 'justify-center' : '')}
+                >
+                  {({ isActive }) => (
+                    <>
+                      <NavIcon
+                        name={item.icon}
+                        size={18}
+                        weight={isActive ? 'fill' : 'duotone'}
+                        className={isActive ? 'shrink-0 text-primary-foreground' : 'shrink-0'}
+                      />
+                      <AnimatePresence mode="wait">
+                        {!collapsed && (
+                          <motion.span
+                            key="label"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.12 }}
+                            className="truncate whitespace-nowrap"
+                          >
+                            {item.label}
+                          </motion.span>
+                        )}
+                      </AnimatePresence>
+                    </>
                   )}
-                </AnimatePresence>
-              </>
-            )}
-          </NavLink>
-        ))}
+                </NavLink>
+              ))}
+            </div>
+          );
+        })}
       </nav>
 
-      {/* XP bar + user */}
-      <div style={{ borderTop: '1px solid var(--color-border)', padding: '12px 8px' }}>
-        {/* XP bar */}
+      {/* Profile + Pro card */}
+      <AnimatePresence>
         {!collapsed && user && (
-          <div style={{ marginBottom: 12, padding: '0 4px' }}>
-            <div style={{ alignItems: 'center', display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-              <span style={{ color: 'var(--color-text-muted)', fontSize: '0.75rem' }}>Level {user.level}</span>
-              <span style={{ color: 'var(--color-warning)', fontSize: '0.75rem', fontWeight: 600 }}>{user.xp} XP</span>
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 8 }}
+            transition={{ duration: 0.2 }}
+            className="mx-3 mb-3 rounded-xl border border-border bg-secondary/40 p-3"
+          >
+            <div className="flex items-center gap-2.5">
+              <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-primary to-[#8b5cf6] text-[0.8rem] font-bold text-primary-foreground">
+                {user.name?.charAt(0).toUpperCase() ?? 'U'}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5">
+                  <span className="truncate text-[0.82rem] font-medium text-foreground">{user.name}</span>
+                  {isPro && (
+                    <Badge className="h-4.5 shrink-0 bg-linear-to-r from-primary to-[#8b5cf6] px-1.5 text-[0.6rem]">
+                      Pro
+                    </Badge>
+                  )}
+                </div>
+                <div className="truncate text-[0.68rem] text-muted-foreground">
+                  {isPro ? 'Pro Plan' : 'Free Plan'}
+                </div>
+              </div>
             </div>
-            <div style={{ background: 'var(--color-border)', borderRadius: 99, height: 4, overflow: 'hidden' }}>
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${xpProgress}%` }}
-                transition={{ duration: 0.8, ease: 'easeOut' }}
-                style={{ background: 'var(--color-warning)', borderRadius: 99, height: '100%' }}
-              />
-            </div>
-          </div>
+
+            {!isPro && (
+              <>
+                <div className="my-2.5 border-t border-border" />
+                <Link
+                  to="/upgrade"
+                  className="group flex items-center justify-between gap-2 no-underline"
+                >
+                  <div className="min-w-0">
+                    <div className="text-[0.75rem] font-medium text-foreground">Unlock more with Pro</div>
+                    <div className="truncate text-[0.65rem] text-muted-foreground">
+                      Advanced stats, reminders,
+                    </div>
+                  </div>
+                  <CaretRightIcon
+                    size={13}
+                    className="shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5"
+                  />
+                </Link>
+                <Button size="sm" className="mt-2 w-full gap-1.5 bg-linear-to-r from-primary to-[#8b5cf6] text-xs hover:opacity-90" asChild>
+                  <Link to="/upgrade">
+                    <LightningIcon size={13} weight="fill" />
+                    Upgrade to Pro
+                  </Link>
+                </Button>
+              </>
+            )}
+          </motion.div>
         )}
-
-        {/* User info */}
-        <div style={{
-          alignItems: 'center', borderRadius: 10, display: 'flex',
-          gap: 10, justifyContent: collapsed ? 'center' : 'space-between',
-          padding: '8px 4px',
-        }}>
-          {/* Avatar */}
-          <div style={{
-            alignItems: 'center', background: 'var(--color-accent)', borderRadius: '50%',
-            color: '#fff', display: 'flex', flexShrink: 0,
-            fontSize: '0.8rem', fontWeight: 700,
-            height: 32, justifyContent: 'center', width: 32,
-          }}>
-            {user?.name?.charAt(0).toUpperCase() ?? 'U'}
-          </div>
-
-          {!collapsed && (
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ color: 'var(--color-text)', fontSize: '0.85rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {user?.name}
-              </div>
-              <div style={{ color: 'var(--color-text-muted)', fontSize: '0.72rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {user?.plan === 'pro' ? '✨ Pro' : 'Free'}
-              </div>
-            </div>
-          )}
-
-          {!collapsed && (
-            <button
-              onClick={handleLogout}
-              className="btn-ghost"
-              style={{ padding: 6, borderRadius: 8, minWidth: 'auto', minHeight: 'auto' }}
-              title="Sign out"
-            >
-              <NavIcon name="SignOut" size={16} weight="bold" color="var(--color-text-muted)" />
-            </button>
-          )}
-        </div>
-      </div>
+      </AnimatePresence>
     </motion.aside>
   );
 }

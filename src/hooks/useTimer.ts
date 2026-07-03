@@ -182,6 +182,17 @@ export function useTimer() {
     store.setTask(taskId, subject);
   }, [store]);
 
+  const switchPhase = useCallback((phase: PomodoroPhase) => {
+    const { isRunning, currentSessionId } = useTimerStore.getState();
+    if (isRunning) return;
+    if (currentSessionId) {
+      pomodoroApi.end(currentSessionId, { wasCompleted: false }).catch(() => {});
+    }
+    useTimerStore.getState().setPhase(phase);
+    useTimerStore.getState().setCurrentSessionId(null);
+    useTimerStore.getState().reset(phaseDuration(phase));
+  }, [phaseDuration]);
+
   const totalSeconds = phaseDuration(store.phase);
   const progress = totalSeconds > 0 ? 1 - store.secondsLeft / totalSeconds : 0;
 
@@ -205,5 +216,6 @@ export function useTimer() {
     skip,
     reset,
     setTask,
+    switchPhase,
   };
 }

@@ -3,6 +3,8 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/authStore';
 import { authApi } from './api/auth';
 import { useTheme } from './hooks/useTheme';
+import { Toaster } from '@/components/ui/sonner';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import AppLayout from './components/layout/AppLayout';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -21,43 +23,29 @@ import Upgrade       from './pages/Upgrade';
 import Landing from './pages/Landing';
 import Pricing from './pages/Pricing';
 
+import LoadingSpinner from '@/components/shared/LoadingSpinner';
+
 function ThemeProvider({ children }: { children: React.ReactNode }) {
   useTheme();
   return <>{children}</>;
 }
 
-function Spinner() {
-  return (
-    <div style={{
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      minHeight: '100dvh', background: 'var(--color-bg)',
-    }}>
-      <div style={{
-        width: 32, height: 32, borderRadius: '50%',
-        border: '2px solid var(--color-border)',
-        borderTopColor: 'var(--color-accent)',
-        animation: 'spin 0.8s linear infinite',
-      }} />
-    </div>
-  );
-}
-
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuthStore();
-  if (isLoading) return <Spinner />;
+  if (isLoading) return <LoadingSpinner />;
   return user ? <>{children}</> : <Navigate to="/login" replace />;
 }
 
 function AuthRoute({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuthStore();
-  if (isLoading) return <Spinner />;
+  if (isLoading) return <LoadingSpinner />;
   return user ? <Navigate to="/dashboard" replace /> : <>{children}</>;
 }
 
 // "/" shows landing for guests, redirects to dashboard for logged-in users
 function HomeRoute() {
   const { user, isLoading } = useAuthStore();
-  if (isLoading) return <Spinner />;
+  if (isLoading) return <LoadingSpinner />;
   return user ? <Navigate to="/dashboard" replace /> : <Landing />;
 }
 
@@ -86,8 +74,9 @@ export default function App() {
 
   return (
     <ThemeProvider>
-      <BrowserRouter>
-        <Routes>
+      <TooltipProvider>
+        <BrowserRouter>
+          <Routes>
             {/* Public pages */}
             <Route path="/" element={<HomeRoute />} />
             <Route path="/pricing" element={<Pricing />} />
@@ -112,7 +101,9 @@ export default function App() {
 
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
-      </BrowserRouter>
+        </BrowserRouter>
+        <Toaster richColors closeButton position="top-right" />
+      </TooltipProvider>
     </ThemeProvider>
   );
 }

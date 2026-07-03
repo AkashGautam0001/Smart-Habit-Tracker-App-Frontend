@@ -7,6 +7,11 @@ import CalendarGrid from '../components/calendar/CalendarGrid';
 import DayPanel from '../components/calendar/DayPanel';
 import { analyticsApi } from '../api/analytics';
 import { APP_CONFIG } from '../config/app.config';
+import PageShell from '@/components/shared/PageShell';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
 
 function monthKey(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
@@ -63,81 +68,89 @@ export default function Calendar() {
         <meta name="robots" content="noindex" />
       </Helmet>
 
-      <div style={{ display: 'grid', gap: 20, gridTemplateColumns: selectedDate && !isMobile ? '1fr 300px' : '1fr', maxWidth: 900 }}>
+      <PageShell
+        className={cn(
+          'max-w-[900px]',
+          selectedDate && !isMobile && 'grid grid-cols-[1fr_300px] gap-5 space-y-0',
+        )}
+      >
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="icon-sm" asChild>
+                <motion.button whileTap={{ scale: 0.9 }} onClick={prevMonth}>
+                  <CaretLeftIcon size={15} weight="bold" />
+                </motion.button>
+              </Button>
 
-        {/* ── Left: calendar ── */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-
-          {/* Month navigation */}
-          <div style={{ alignItems: 'center', display: 'flex', gap: 12, justifyContent: 'space-between' }}>
-            <div style={{ alignItems: 'center', display: 'flex', gap: 8 }}>
-              <motion.button whileTap={{ scale: 0.9 }} onClick={prevMonth}
-                style={{ alignItems: 'center', background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 8, color: 'var(--color-text-secondary)', cursor: 'pointer', display: 'flex', minHeight: 'auto', minWidth: 'auto', padding: 7 }}>
-                <CaretLeftIcon size={15} weight="bold" />
-              </motion.button>
-
-              <h1 style={{ color: 'var(--color-text)', fontSize: '1.15rem', fontWeight: 700, minWidth: 160, textAlign: 'center' }}>
+              <h1 className="min-w-40 text-center text-lg font-bold text-foreground">
                 {monthLabel(current)}
               </h1>
 
-              <motion.button whileTap={{ scale: 0.9 }} onClick={nextMonth}
-                style={{ alignItems: 'center', background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 8, color: 'var(--color-text-secondary)', cursor: 'pointer', display: 'flex', minHeight: 'auto', minWidth: 'auto', padding: 7 }}>
-                <CaretRightIcon size={15} weight="bold" />
-              </motion.button>
+              <Button variant="outline" size="icon-sm" asChild>
+                <motion.button whileTap={{ scale: 0.9 }} onClick={nextMonth}>
+                  <CaretRightIcon size={15} weight="bold" />
+                </motion.button>
+              </Button>
             </div>
 
             {!isThisMonth && (
-              <button
+              <Button
+                variant="secondary"
+                size="sm"
                 onClick={() => { setCurrent(new Date()); setSelected(null); }}
-                style={{ background: 'var(--color-surface-hover)', border: '1px solid var(--color-border)', borderRadius: 7, color: 'var(--color-text-secondary)', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600, minHeight: 'auto', minWidth: 'auto', padding: '5px 12px' }}
               >
                 Today
-              </button>
+              </Button>
             )}
           </div>
 
-          {/* Stats row */}
           {!isLoading && days.length > 0 && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-              style={{ display: 'grid', gap: 10, gridTemplateColumns: 'repeat(3, 1fr)' }}>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="grid grid-cols-3 gap-2.5"
+            >
               {[
                 { label: 'Active days',  value: activeDays },
                 { label: 'Perfect days', value: perfectDays },
                 { label: 'Focus time',   value: totalFocus >= 60 ? `${Math.floor(totalFocus / 60)}h` : `${totalFocus}m` },
               ].map((s) => (
-                <div key={s.label} className="card" style={{ padding: '10px 12px', textAlign: 'center' }}>
-                  <div style={{ color: 'var(--color-text)', fontSize: '1.1rem', fontWeight: 700 }}>{s.value}</div>
-                  <div style={{ color: 'var(--color-text-muted)', fontSize: '0.7rem', marginTop: 2 }}>{s.label}</div>
-                </div>
+                <Card key={s.label} size="sm" className="py-0">
+                  <CardContent className="px-3 py-2.5 text-center">
+                    <div className="text-lg font-bold text-foreground">{s.value}</div>
+                    <div className="mt-0.5 text-[0.7rem] text-muted-foreground">{s.label}</div>
+                  </CardContent>
+                </Card>
               ))}
             </motion.div>
           )}
 
-          {/* Calendar grid */}
-          <div className="card" style={{ padding: 16 }}>
-            {isLoading ? (
-              <div style={{ display: 'grid', gap: 4, gridTemplateColumns: 'repeat(7, 1fr)' }}>
-                {Array.from({ length: 35 }).map((_, i) => (
-                  <div key={i} style={{ aspectRatio: '1', background: 'var(--color-surface-hover)', borderRadius: 6, opacity: 0.4 }} />
-                ))}
-              </div>
-            ) : (
-              <CalendarGrid
-                days={days}
-                selectedDate={selectedDate}
-                onSelect={(d) => setSelected((prev) => prev === d ? null : d)}
-              />
-            )}
-          </div>
+          <Card className="py-0">
+            <CardContent className="p-4">
+              {isLoading ? (
+                <div className="grid grid-cols-7 gap-1">
+                  {Array.from({ length: 35 }).map((_, i) => (
+                    <Skeleton key={i} className="aspect-square rounded-md opacity-40" />
+                  ))}
+                </div>
+              ) : (
+                <CalendarGrid
+                  days={days}
+                  selectedDate={selectedDate}
+                  onSelect={(d) => setSelected((prev) => prev === d ? null : d)}
+                />
+              )}
+            </CardContent>
+          </Card>
         </div>
 
-        {/* ── Right: Day panel (desktop inline, mobile bottom sheet) ── */}
         <DayPanel
           date={selectedDate}
           onClose={() => setSelected(null)}
           isMobile={isMobile}
         />
-      </div>
+      </PageShell>
     </>
   );
 }

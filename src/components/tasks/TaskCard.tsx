@@ -1,6 +1,14 @@
-import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircleIcon, CircleIcon, DotsThreeVerticalIcon, PencilSimpleIcon, TrashIcon } from '@phosphor-icons/react';
+import { CheckCircleIcon, CircleIcon, DotsThreeVerticalIcon, PencilSimpleIcon, TrashIcon, TimerIcon } from '@phosphor-icons/react';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { cn } from '@/lib/utils';
 import type { Task } from '../../types';
 
 interface Props {
@@ -12,8 +20,6 @@ interface Props {
 }
 
 export default function TaskCard({ task, subjectColor, onToggle, onEdit, onDelete }: Props) {
-  const [menuOpen, setMenuOpen] = useState(false);
-
   const tomatoFilled = Math.min(task.completedPomodoros, task.estimatedPomodoros);
   const tomatoTotal = Math.max(task.estimatedPomodoros, task.completedPomodoros);
 
@@ -23,147 +29,88 @@ export default function TaskCard({ task, subjectColor, onToggle, onEdit, onDelet
       initial={{ opacity: 0, y: -4 }}
       animate={{ opacity: task.isCompleted ? 0.5 : 1, y: 0 }}
       exit={{ opacity: 0, height: 0 }}
-      style={{
-        alignItems: 'center',
-        borderBottom: '1px solid var(--color-border)',
-        display: 'flex', gap: 12, padding: '12px 14px',
-        position: 'relative',
-      }}
+      className="relative flex items-center gap-3 border-b border-border px-3.5 py-3"
     >
-      {/* Checkbox */}
-      <button
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon-sm"
         onClick={onToggle}
-        style={{
-          alignItems: 'center', background: 'none', border: 'none',
-          color: task.isCompleted ? 'var(--color-success)' : 'var(--color-text-muted)',
-          cursor: 'pointer', display: 'flex', flexShrink: 0,
-          minHeight: 'auto', minWidth: 'auto', padding: 0,
-          transition: 'color 0.2s',
-        }}
+        className={cn(
+          'shrink-0',
+          task.isCompleted
+            ? 'text-chart-2 hover:text-chart-2'
+            : 'text-muted-foreground',
+        )}
+        aria-label={task.isCompleted ? 'Mark incomplete' : 'Mark complete'}
       >
         {task.isCompleted
           ? <CheckCircleIcon size={22} weight="fill" />
           : <CircleIcon size={22} weight="regular" />
         }
-      </button>
+      </Button>
 
-      {/* Title + meta */}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{
-          color: 'var(--color-text)',
-          fontSize: '0.9rem',
-          fontWeight: 500,
-          overflow: 'hidden',
-          textDecoration: task.isCompleted ? 'line-through' : 'none',
-          textOverflow: 'ellipsis',
-          transition: 'text-decoration 0.2s',
-          whiteSpace: 'nowrap',
-        }}>
+      <div className="min-w-0 flex-1">
+        <div
+          className={cn(
+            'truncate text-sm font-medium text-foreground transition-[text-decoration] duration-200',
+            task.isCompleted && 'line-through',
+          )}
+        >
           {task.title}
         </div>
 
-        {/* Pomodoro dots */}
-        <div style={{ alignItems: 'center', display: 'flex', gap: 4, marginTop: 4 }}>
+        <div className="mt-1 flex items-center gap-0.5">
           {Array.from({ length: tomatoTotal }).map((_, i) => (
-            <span
+            <TimerIcon
               key={i}
-              style={{ fontSize: '0.7rem', opacity: i < tomatoFilled ? 1 : 0.3 }}
+              size={12}
+              weight={i < tomatoFilled ? 'fill' : 'regular'}
+              className={cn(i < tomatoFilled ? 'text-primary' : 'text-muted-foreground/30')}
               title={i < tomatoFilled ? 'Completed session' : 'Planned session'}
-            >
-              🍅
-            </span>
+            />
           ))}
           {task.completedPomodoros > task.estimatedPomodoros && (
-            <span style={{ color: 'var(--color-warning)', fontSize: '0.7rem' }}>
+            <span className="text-[0.7rem] text-chart-3">
               +{task.completedPomodoros - task.estimatedPomodoros}
             </span>
           )}
         </div>
       </div>
 
-      {/* Subject badge */}
       {task.subject && (
-        <span style={{
-          background: `color-mix(in srgb, ${subjectColor} 15%, transparent)`,
-          border: `1px solid ${subjectColor}40`,
-          borderRadius: 99,
-          color: subjectColor,
-          fontSize: '0.7rem', fontWeight: 600,
-          padding: '2px 8px', flexShrink: 0,
-          whiteSpace: 'nowrap',
-        }}>
+        <Badge
+          variant="outline"
+          className="shrink-0 whitespace-nowrap border-(--subject-color)/25 bg-[color-mix(in_srgb,var(--subject-color)_15%,transparent)] text-(--subject-color)"
+          style={{ '--subject-color': subjectColor } as React.CSSProperties}
+        >
           {task.subject}
-        </span>
+        </Badge>
       )}
 
-      {/* Three-dot menu */}
-      <div style={{ position: 'relative' }}>
-        <button
-          onClick={(e) => { e.stopPropagation(); setMenuOpen((o) => !o); }}
-          style={{
-            alignItems: 'center', background: 'none', border: 'none',
-            borderRadius: 6,
-            color: 'var(--color-text-muted)', cursor: 'pointer',
-            display: 'flex', minHeight: 'auto', minWidth: 'auto',
-            padding: 4, transition: 'color 0.15s',
-          }}
-        >
-          <DotsThreeVerticalIcon size={18} weight="bold" />
-        </button>
-
-        {menuOpen && (
-          <>
-            <div
-              onClick={() => setMenuOpen(false)}
-              style={{ bottom: 0, left: 0, position: 'fixed', right: 0, top: 0, zIndex: 10 }}
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.92 }}
-              animate={{ opacity: 1, scale: 1 }}
-              style={{
-                background: 'var(--color-surface)',
-                border: '1px solid var(--color-border)',
-                borderRadius: 'var(--radius-md)',
-                boxShadow: 'var(--shadow-lg)',
-                minWidth: 130,
-                position: 'absolute', right: 0, top: '100%',
-                zIndex: 20, overflow: 'hidden',
-              }}
-            >
-              <button
-                onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onEdit(); }}
-                style={{
-                  alignItems: 'center', background: 'none', border: 'none',
-                  color: 'var(--color-text-secondary)', cursor: 'pointer',
-                  display: 'flex', fontSize: '0.85rem',
-                  gap: 8, minHeight: 'auto', minWidth: 'auto',
-                  padding: '10px 14px', width: '100%',
-                  transition: 'background 0.15s',
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--color-surface-hover)')}
-                onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
-              >
-                <PencilSimpleIcon size={14} /> Edit
-              </button>
-              <button
-                onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onDelete(); }}
-                style={{
-                  alignItems: 'center', background: 'none', border: 'none',
-                  color: 'var(--color-danger)', cursor: 'pointer',
-                  display: 'flex', fontSize: '0.85rem',
-                  gap: 8, minHeight: 'auto', minWidth: 'auto',
-                  padding: '10px 14px', width: '100%',
-                  transition: 'background 0.15s',
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--color-surface-hover)')}
-                onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
-              >
-                <TrashIcon size={14} /> Delete
-              </button>
-            </motion.div>
-          </>
-        )}
-      </div>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            className="shrink-0 text-muted-foreground"
+            aria-label="Task actions"
+          >
+            <DotsThreeVerticalIcon size={18} weight="bold" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="min-w-32.5">
+          <DropdownMenuItem onClick={onEdit}>
+            <PencilSimpleIcon size={14} />
+            Edit
+          </DropdownMenuItem>
+          <DropdownMenuItem variant="destructive" onClick={onDelete}>
+            <TrashIcon size={14} />
+            Delete
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </motion.div>
   );
 }

@@ -1,4 +1,7 @@
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
+import { BooksIcon } from '@phosphor-icons/react';
+import { Card, CardContent } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 
 export interface SubjectData {
   subject: string;
@@ -12,7 +15,16 @@ interface Props {
   totalMinutes: number;
 }
 
-const PALETTE = ['#6366f1', '#22c55e', '#f59e0b', '#3b82f6', '#ef4444', '#ec4899', '#8b5cf6', '#06b6d4'];
+const PALETTE = [
+  'var(--chart-1)',
+  'var(--chart-2)',
+  'var(--chart-3)',
+  'var(--chart-4)',
+  '#3b82f6',
+  'var(--chart-5)',
+  '#8b5cf6',
+  '#06b6d4',
+];
 
 function fmt(min: number): string {
   const h = Math.floor(min / 60);
@@ -29,28 +41,28 @@ interface CustomTooltipProps {
 function CustomTooltip({ active, payload }: CustomTooltipProps) {
   if (!active || !payload?.length) return null;
   const s = payload[0].payload;
+
   return (
-    <div style={{
-      background: 'var(--color-surface)',
-      border: '1px solid var(--color-border)',
-      borderRadius: 8,
-      padding: '8px 12px',
-      fontSize: '0.78rem',
-      boxShadow: 'var(--shadow-md)',
-    }}>
-      <div style={{ fontWeight: 600, color: 'var(--color-text)', marginBottom: 2 }}>{s.subject}</div>
-      <div style={{ color: 'var(--color-text-secondary)' }}>{fmt(s.minutes)} · {s.pct}%</div>
-      <div style={{ color: 'var(--color-text-muted)' }}>{s.sessions} session{s.sessions !== 1 ? 's' : ''}</div>
-    </div>
+    <Card size="sm" className="py-2 shadow-md">
+      <CardContent className="px-3 py-0 text-[0.78rem]">
+        <div className="mb-0.5 font-semibold text-foreground">{s.subject}</div>
+        <div className="text-muted-foreground">
+          {fmt(s.minutes)} · {s.pct}%
+        </div>
+        <div className="text-muted-foreground/80">
+          {s.sessions} session{s.sessions !== 1 ? 's' : ''}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
 export default function SubjectDonut({ subjects, totalMinutes }: Props) {
   if (subjects.length === 0) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 200, gap: 8 }}>
-        <div style={{ fontSize: '1.6rem', opacity: 0.3 }}>📚</div>
-        <div style={{ fontSize: '0.83rem', color: 'var(--color-text-muted)' }}>No session data yet</div>
+      <div className="flex h-50 flex-col items-center justify-center gap-2">
+        <BooksIcon size={32} weight="duotone" className="text-muted-foreground/30" />
+        <div className="text-[0.83rem] text-muted-foreground">No session data yet</div>
       </div>
     );
   }
@@ -77,23 +89,34 @@ export default function SubjectDonut({ subjects, totalMinutes }: Props) {
         </PieChart>
       </ResponsiveContainer>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginTop: 4 }}>
-        {subjects.slice(0, 6).map((s, i) => (
-          <div key={s.subject} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.81rem' }}>
-            <div style={{ width: 9, height: 9, borderRadius: 2, background: PALETTE[i % PALETTE.length], flexShrink: 0 }} />
-            <span style={{ flex: 1, color: 'var(--color-text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {s.subject}
-            </span>
-            <span style={{ color: 'var(--color-text)', fontWeight: 500 }}>{fmt(s.minutes)}</span>
-            <span style={{ color: 'var(--color-text-muted)', minWidth: 34, textAlign: 'right' }}>{s.pct}%</span>
-          </div>
-        ))}
-      </div>
+      <Card size="sm" className="mt-1 gap-0 py-2 ring-0">
+        <CardContent className="flex flex-col gap-1.5 px-3 py-0">
+          {subjects.slice(0, 6).map((s, i) => (
+            <div
+              key={s.subject}
+              className="flex items-center gap-2 text-[0.81rem]"
+            >
+              <div
+                className="size-2 shrink-0 rounded-sm bg-(--dot-c)"
+                style={{ '--dot-c': PALETTE[i % PALETTE.length] } as React.CSSProperties}
+              />
+              <span className="flex-1 truncate text-muted-foreground">
+                {s.subject}
+              </span>
+              <span className="font-medium text-foreground">{fmt(s.minutes)}</span>
+              <span className="min-w-8.5 text-right text-muted-foreground">
+                {s.pct}%
+              </span>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
 
       {totalMinutes > 0 && (
-        <div style={{ marginTop: 10, fontSize: '0.76rem', color: 'var(--color-text-muted)', textAlign: 'center' }}>
-          Total: {fmt(totalMinutes)} across {subjects.length} subject{subjects.length !== 1 ? 's' : ''}
-        </div>
+        <p className="mt-2.5 text-center text-[0.76rem] text-muted-foreground">
+          Total: {fmt(totalMinutes)} across {subjects.length} subject
+          {subjects.length !== 1 ? 's' : ''}
+        </p>
       )}
     </div>
   );

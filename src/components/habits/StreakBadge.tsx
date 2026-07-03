@@ -1,4 +1,6 @@
 import { FireIcon } from '@phosphor-icons/react';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 interface Props {
   streak: number;
@@ -9,19 +11,17 @@ export default function StreakBadge({ streak, size = 'md' }: Props) {
   if (!streak) return null;
 
   const iconSize = size === 'sm' ? 14 : 16;
-  const fontSize = size === 'sm' ? '0.72rem' : '0.8rem';
 
   return (
-    <span style={{
-      alignItems: 'center', display: 'inline-flex', gap: 3,
-      background: 'color-mix(in srgb, #f97316 12%, transparent)',
-      border: '1px solid color-mix(in srgb, #f97316 25%, transparent)',
-      borderRadius: 99, padding: size === 'sm' ? '2px 7px' : '3px 9px',
-    }}>
-      <FireIcon size={iconSize} weight="fill" color="#f97316" />
-      <span style={{ color: '#f97316', fontSize, fontWeight: 700, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
-        {streak}
-      </span>
-    </span>
+    <Badge
+      variant="outline"
+      className={cn(
+        'border-orange-500/30 bg-orange-500/10 font-bold text-orange-500 tabular-nums',
+        size === 'sm' ? 'h-5 gap-0.5 px-1.5 text-[0.72rem]' : 'h-6 gap-1 px-2 text-xs',
+      )}
+    >
+      <FireIcon size={iconSize} weight="fill" className="text-orange-500" />
+      {streak}
+    </Badge>
   );
 }

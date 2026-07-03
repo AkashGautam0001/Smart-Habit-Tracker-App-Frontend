@@ -3,7 +3,11 @@ import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircleIcon, XIcon, CaretDownIcon, LightningIcon } from '@phosphor-icons/react';
-import PublicNavbar from '../components/layout/PublicNavbar';
+import PublicNavbar from '@/components/layout/PublicNavbar';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 import { APP_CONFIG } from '../config/app.config';
 import { PLANS } from '../config/plans.config';
 
@@ -51,11 +55,11 @@ const FAQS = [
 
 function CheckCell({ value }: { value: boolean | string }) {
   if (typeof value === 'string') {
-    return <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.82rem' }}>{value}</span>;
+    return <span className="text-[0.82rem] text-muted-foreground">{value}</span>;
   }
   return value
-    ? <CheckCircleIcon size={18} weight="fill" color="var(--color-success)" />
-    : <XIcon size={16} weight="bold" color="var(--color-border)" />;
+    ? <CheckCircleIcon size={18} weight="fill" className="text-green-500" />
+    : <XIcon size={16} weight="bold" className="text-border" />;
 }
 
 export default function Pricing() {
@@ -73,292 +77,277 @@ export default function Pricing() {
         <link rel="canonical" href={`${APP_CONFIG.url}/pricing`} />
       </Helmet>
 
-      <div style={{ background: 'var(--color-bg)', minHeight: '100dvh', width: '100%' }}>
+      <div className="min-h-dvh w-full bg-background">
         <PublicNavbar />
 
         {/* ─── Header ─── */}
-        <section style={{ padding: '120px 24px 56px', textAlign: 'center' }}>
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}>
-            <span style={{
-              background: 'color-mix(in srgb, var(--color-accent) 12%, transparent)',
-              border: '1px solid color-mix(in srgb, var(--color-accent) 30%, transparent)',
-              borderRadius: 99, color: 'var(--color-accent)',
-              display: 'inline-block', fontSize: '0.72rem', fontWeight: 700,
-              letterSpacing: '0.08em', marginBottom: 16, padding: '4px 14px', textTransform: 'uppercase',
-            }}>
+        <section className="px-6 pt-[120px] pb-14 text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35 }}
+          >
+            <Badge
+              variant="outline"
+              className="mb-4 border-primary/30 bg-primary/10 px-3.5 py-1 text-[0.72rem] font-bold uppercase tracking-wider text-primary"
+            >
               Simple Pricing
-            </span>
+            </Badge>
 
-            <h1 style={{
-              color: 'var(--color-text)', fontSize: 'clamp(2rem, 5vw, 3rem)',
-              fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1.1, marginBottom: 14,
-            }}>
+            <h1 className="mb-3.5 text-[clamp(2rem,5vw,3rem)] leading-tight font-extrabold tracking-tight text-foreground">
               Free to start.<br />Pro to unlock everything.
             </h1>
 
-            <p style={{ color: 'var(--color-text-secondary)', fontSize: '1rem', lineHeight: 1.7, margin: '0 auto 32px', maxWidth: 480 }}>
+            <p className="mx-auto mb-8 max-w-[480px] text-base leading-relaxed text-muted-foreground">
               No hidden fees. No feature gating on the core daily loop. Upgrade when you're ready to go deeper.
             </p>
 
             {/* Billing toggle */}
-            <div style={{
-              alignItems: 'center',
-              background: 'var(--color-surface)',
-              border: '1px solid var(--color-border)',
-              borderRadius: 10,
-              display: 'inline-flex',
-              gap: 0,
-              padding: 4,
-            }}>
+            <div className="inline-flex rounded-[10px] border border-border bg-card p-1">
               {(['monthly', 'yearly'] as const).map((b) => (
-                <button
+                <Button
                   key={b}
+                  variant={billing === b ? 'default' : 'ghost'}
+                  size="sm"
                   onClick={() => setBilling(b)}
-                  style={{
-                    background: billing === b ? 'var(--color-accent)' : 'transparent',
-                    border: 'none',
-                    borderRadius: 7,
-                    color: billing === b ? '#fff' : 'var(--color-text-muted)',
-                    cursor: 'pointer',
-                    fontSize: '0.875rem',
-                    fontWeight: 500,
-                    padding: '8px 20px',
-                    transition: 'all 0.15s ease',
-                  }}
+                  className="rounded-md px-5"
                 >
                   {b === 'monthly' ? 'Monthly' : (
-                    <span style={{ alignItems: 'center', display: 'inline-flex', gap: 8 }}>
+                    <span className="inline-flex items-center gap-2">
                       Yearly
-                      <span style={{ background: '#16a34a', borderRadius: 99, color: '#fff', fontSize: '0.62rem', fontWeight: 700, padding: '2px 8px' }}>
+                      <Badge className="border-0 bg-green-600 px-2 py-0 text-[0.62rem] font-bold text-white">
                         Save ₹{savings}
-                      </span>
+                      </Badge>
                     </span>
                   )}
-                </button>
+                </Button>
               ))}
             </div>
           </motion.div>
         </section>
 
         {/* ─── Plan cards ─── */}
-        <section style={{ padding: '0 24px 72px' }}>
-          <div style={{
-            display: 'grid',
-            gap: 20,
-            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-            margin: '0 auto',
-            maxWidth: 800,
-          }}>
+        <section className="px-6 pb-[72px]">
+          <div className="mx-auto grid max-w-[800px] grid-cols-[repeat(auto-fit,minmax(280px,1fr))] gap-5">
             {/* Free */}
             <motion.div
-              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
-              className="card"
-              style={{ padding: 28 }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.05 }}
             >
-              <div style={{ marginBottom: 20 }}>
-                <div style={{ color: 'var(--color-text-muted)', fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.06em', marginBottom: 8, textTransform: 'uppercase' }}>Free</div>
-                <div style={{ alignItems: 'baseline', display: 'flex', gap: 4 }}>
-                  <span style={{ color: 'var(--color-text)', fontSize: '2.6rem', fontWeight: 800, letterSpacing: '-0.04em' }}>₹0</span>
-                  <span style={{ color: 'var(--color-text-muted)', fontSize: '0.82rem' }}>/forever</span>
-                </div>
-                <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.85rem', lineHeight: 1.55, marginTop: 8 }}>
-                  Everything you need to start building daily habits and focus sessions.
-                </p>
-              </div>
-
-              <Link
-                to="/register"
-                className="btn btn-ghost"
-                style={{ border: '1px solid var(--color-border)', display: 'block', marginBottom: 24, textAlign: 'center', width: '100%' }}
-              >
-                Get Started Free
-              </Link>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {['10 habits', 'Unlimited Pomodoro sessions', 'Daily tasks & subject tracking', 'Dashboard & weekly chart', '2 goals', 'Cloud sync & PWA'].map((f) => (
-                  <div key={f} style={{ alignItems: 'center', display: 'flex', gap: 10 }}>
-                    <CheckCircleIcon size={16} weight="fill" color="var(--color-success)" style={{ flexShrink: 0 }} />
-                    <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.85rem' }}>{f}</span>
+              <Card className="h-full py-0">
+                <CardContent className="p-7">
+                  <div className="mb-5">
+                    <div className="mb-2 text-[0.75rem] font-semibold uppercase tracking-wider text-muted-foreground">
+                      Free
+                    </div>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-[2.6rem] font-extrabold tracking-tight text-foreground">₹0</span>
+                      <span className="text-[0.82rem] text-muted-foreground">/forever</span>
+                    </div>
+                    <p className="mt-2 text-[0.85rem] leading-snug text-muted-foreground">
+                      Everything you need to start building daily habits and focus sessions.
+                    </p>
                   </div>
-                ))}
-              </div>
+
+                  <Button variant="outline" className="mb-6 w-full" asChild>
+                    <Link to="/register">Get Started Free</Link>
+                  </Button>
+
+                  <div className="flex flex-col gap-2.5">
+                    {['10 habits', 'Unlimited Pomodoro sessions', 'Daily tasks & subject tracking', 'Dashboard & weekly chart', '2 goals', 'Cloud sync & PWA'].map((f) => (
+                      <div key={f} className="flex items-center gap-2.5">
+                        <CheckCircleIcon size={16} weight="fill" className="shrink-0 text-green-500" />
+                        <span className="text-[0.85rem] text-muted-foreground">{f}</span>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
             </motion.div>
 
             {/* Pro */}
             <motion.div
-              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-              style={{
-                background: 'var(--color-surface)',
-                border: '1px solid color-mix(in srgb, var(--color-accent) 45%, transparent)',
-                borderRadius: 'var(--radius-lg)',
-                boxShadow: '0 0 48px color-mix(in srgb, var(--color-accent) 10%, transparent)',
-                padding: 28,
-                position: 'relative',
-              }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
             >
-              {/* Badge */}
-              <div style={{ position: 'absolute', right: 20, top: -1 }}>
-                <div style={{
-                  background: 'var(--color-accent)',
-                  borderRadius: '0 0 10px 10px',
-                  color: '#fff',
-                  fontSize: '0.65rem',
-                  fontWeight: 700,
-                  letterSpacing: '0.08em',
-                  padding: '4px 14px',
-                  textTransform: 'uppercase',
-                }}>
-                  Most Popular
+              <Card className="relative h-full border-primary/45 py-0 shadow-[0_0_48px] shadow-primary/10">
+                <div className="absolute top-0 right-5">
+                  <Badge className="rounded-t-none rounded-b-[10px] border-0 bg-primary px-3.5 py-1 text-[0.65rem] font-bold uppercase tracking-wider text-primary-foreground">
+                    Most Popular
+                  </Badge>
                 </div>
-              </div>
 
-              <div style={{ marginBottom: 20 }}>
-                <div style={{ color: 'var(--color-accent)', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.06em', marginBottom: 8, textTransform: 'uppercase' }}>Pro</div>
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={billing}
-                    initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
-                    transition={{ duration: 0.15 }}
-                  >
-                    <div style={{ alignItems: 'baseline', display: 'flex', gap: 4 }}>
-                      <span style={{ color: 'var(--color-text)', fontSize: '2.6rem', fontWeight: 800, letterSpacing: '-0.04em' }}>
-                        ₹{billing === 'monthly' ? PLANS.pro.price.monthly : monthlyEquiv}
-                      </span>
-                      <span style={{ color: 'var(--color-text-muted)', fontSize: '0.82rem' }}>/month</span>
+                <CardContent className="p-7">
+                  <div className="mb-5">
+                    <div className="mb-2 text-[0.75rem] font-bold uppercase tracking-wider text-primary">
+                      Pro
                     </div>
-                    {billing === 'yearly' && (
-                      <p style={{ color: 'var(--color-success)', fontSize: '0.8rem', marginTop: 4 }}>
-                        Billed ₹{PLANS.pro.price.yearly}/year · You save ₹{savings}
-                      </p>
-                    )}
-                  </motion.div>
-                </AnimatePresence>
-                <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.85rem', lineHeight: 1.55, marginTop: 8 }}>
-                  Unlimited everything, AI coaching, and advanced analytics for serious learners.
-                </p>
-              </div>
-
-              <Link
-                to="/register"
-                className="btn btn-primary"
-                style={{ display: 'flex', fontSize: '0.95rem', marginBottom: 24, width: '100%' }}
-              >
-                <LightningIcon size={16} weight="fill" />
-                Start Pro Free Trial
-              </Link>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {[
-                  'Everything in Free',
-                  'Unlimited habits & history',
-                  'Advanced analytics & heatmap',
-                  'AI daily review + weekly plan',
-                  'AI Study Planner',
-                  'Unlimited goals & projects',
-                  'Focus Music (lo-fi, rain, forest)',
-                  'Premium themes (AMOLED, Dracula…)',
-                  'Data export (PDF, CSV, Excel)',
-                  'Unlimited journal + rich-text notes',
-                ].map((f, i) => (
-                  <div key={f} style={{ alignItems: 'center', display: 'flex', gap: 10 }}>
-                    <CheckCircleIcon size={16} weight="fill" color="var(--color-accent)" style={{ flexShrink: 0 }} />
-                    <span style={{
-                      color: i === 0 ? 'var(--color-text)' : 'var(--color-text-secondary)',
-                      fontSize: '0.85rem',
-                      fontWeight: i === 0 ? 600 : 400,
-                    }}>
-                      {f}
-                    </span>
+                    <AnimatePresence mode="wait">
+                      <motion.div
+                        key={billing}
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -6 }}
+                        transition={{ duration: 0.15 }}
+                      >
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-[2.6rem] font-extrabold tracking-tight text-foreground">
+                            ₹{billing === 'monthly' ? PLANS.pro.price.monthly : monthlyEquiv}
+                          </span>
+                          <span className="text-[0.82rem] text-muted-foreground">/month</span>
+                        </div>
+                        {billing === 'yearly' && (
+                          <p className="mt-1 text-[0.8rem] text-green-500">
+                            Billed ₹{PLANS.pro.price.yearly}/year · You save ₹{savings}
+                          </p>
+                        )}
+                      </motion.div>
+                    </AnimatePresence>
+                    <p className="mt-2 text-[0.85rem] leading-snug text-muted-foreground">
+                      Unlimited everything, AI coaching, and advanced analytics for serious learners.
+                    </p>
                   </div>
-                ))}
-              </div>
+
+                  <Button className="mb-6 w-full gap-2 text-[0.95rem]" asChild>
+                    <Link to="/register">
+                      <LightningIcon size={16} weight="fill" />
+                      Start Pro Free Trial
+                    </Link>
+                  </Button>
+
+                  <div className="flex flex-col gap-2.5">
+                    {[
+                      'Everything in Free',
+                      'Unlimited habits & history',
+                      'Advanced analytics & heatmap',
+                      'AI daily review + weekly plan',
+                      'AI Study Planner',
+                      'Unlimited goals & projects',
+                      'Focus Music (lo-fi, rain, forest)',
+                      'Premium themes (AMOLED, Dracula…)',
+                      'Data export (PDF, CSV, Excel)',
+                      'Unlimited journal + rich-text notes',
+                    ].map((f, i) => (
+                      <div key={f} className="flex items-center gap-2.5">
+                        <CheckCircleIcon size={16} weight="fill" className="shrink-0 text-primary" />
+                        <span
+                          className={cn(
+                            'text-[0.85rem]',
+                            i === 0 ? 'font-semibold text-foreground' : 'text-muted-foreground',
+                          )}
+                        >
+                          {f}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
             </motion.div>
           </div>
         </section>
 
         {/* ─── Full comparison table ─── */}
-        <section style={{ padding: '0 24px 72px' }}>
-          <div style={{ margin: '0 auto', maxWidth: 860 }}>
-            <h2 style={{ color: 'var(--color-text)', fontSize: '1.25rem', fontWeight: 700, marginBottom: 20, textAlign: 'center' }}>
+        <section className="px-6 pb-[72px]">
+          <div className="mx-auto max-w-[860px]">
+            <h2 className="mb-5 text-center text-xl font-bold text-foreground">
               Full Plan Comparison
             </h2>
-            <div className="card" style={{ overflow: 'hidden' }}>
-              <table style={{ borderCollapse: 'collapse', width: '100%' }}>
-                <thead>
-                  <tr style={{ background: 'var(--color-surface-hover)' }}>
-                    <th style={{ color: 'var(--color-text-muted)', fontSize: '0.78rem', fontWeight: 600, padding: '12px 20px', textAlign: 'left', width: '56%' }}>Feature</th>
-                    <th style={{ color: 'var(--color-text)', fontSize: '0.82rem', fontWeight: 600, padding: '12px 20px', textAlign: 'center' }}>Free</th>
-                    <th style={{ color: 'var(--color-accent)', fontSize: '0.82rem', fontWeight: 700, padding: '12px 20px', textAlign: 'center' }}>Pro</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {FEATURE_ROWS.map((row, i) => {
-                    if (row.category) return (
-                      <tr key={row.category + i} style={{ background: 'color-mix(in srgb, var(--color-surface-hover) 60%, transparent)' }}>
-                        <td colSpan={3} style={{ color: 'var(--color-text-secondary)', fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', padding: '10px 20px', textTransform: 'uppercase' }}>
-                          {row.category}
-                        </td>
-                      </tr>
-                    );
-                    return (
-                      <tr key={row.label + i} style={{ borderTop: '1px solid var(--color-border)' }}>
-                        <td style={{ color: 'var(--color-text-secondary)', fontSize: '0.85rem', padding: '11px 20px' }}>{row.label}</td>
-                        <td style={{ padding: '11px 20px', textAlign: 'center' }}><CheckCell value={row.free} /></td>
-                        <td style={{ padding: '11px 20px', textAlign: 'center' }}><CheckCell value={row.pro} /></td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+            <Card className="overflow-hidden py-0">
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr className="bg-secondary">
+                      <th className="w-[56%] px-5 py-3 text-left text-[0.78rem] font-semibold text-muted-foreground">
+                        Feature
+                      </th>
+                      <th className="px-5 py-3 text-center text-[0.82rem] font-semibold text-foreground">
+                        Free
+                      </th>
+                      <th className="px-5 py-3 text-center text-[0.82rem] font-bold text-primary">
+                        Pro
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {FEATURE_ROWS.map((row, i) => {
+                      if (row.category) {
+                        return (
+                          <tr key={row.category + i} className="bg-secondary/60">
+                            <td
+                              colSpan={3}
+                              className="px-5 py-2.5 text-[0.72rem] font-bold uppercase tracking-wider text-muted-foreground"
+                            >
+                              {row.category}
+                            </td>
+                          </tr>
+                        );
+                      }
+                      return (
+                        <tr key={row.label + i} className="border-t border-border">
+                          <td className="px-5 py-[11px] text-[0.85rem] text-muted-foreground">
+                            {row.label}
+                          </td>
+                          <td className="px-5 py-[11px] text-center">
+                            <CheckCell value={row.free} />
+                          </td>
+                          <td className="px-5 py-[11px] text-center">
+                            <CheckCell value={row.pro} />
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
           </div>
         </section>
 
         {/* ─── FAQ ─── */}
-        <section style={{ background: 'var(--color-surface)', borderTop: '1px solid var(--color-border)', padding: '72px 24px' }}>
-          <div style={{ margin: '0 auto', maxWidth: 680 }}>
-            <h2 style={{ color: 'var(--color-text)', fontSize: '1.6rem', fontWeight: 700, letterSpacing: '-0.03em', marginBottom: 28, textAlign: 'center' }}>
+        <section className="border-t border-border bg-card px-6 py-[72px]">
+          <div className="mx-auto max-w-[680px]">
+            <h2 className="mb-7 text-center text-[1.6rem] font-bold tracking-tight text-foreground">
               Frequently Asked Questions
             </h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div className="flex flex-col gap-2">
               {FAQS.map((faq, i) => (
-                <motion.div key={i} className="card" style={{ overflow: 'hidden' }}>
-                  <button
-                    onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                    style={{
-                      alignItems: 'center',
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      gap: 12,
-                      justifyContent: 'space-between',
-                      padding: '16px 20px',
-                      width: '100%',
-                    }}
-                  >
-                    <span style={{ color: 'var(--color-text)', fontSize: '0.875rem', fontWeight: 500, textAlign: 'left' }}>
-                      {faq.q}
-                    </span>
-                    <motion.div animate={{ rotate: openFaq === i ? 180 : 0 }} transition={{ duration: 0.2 }} style={{ flexShrink: 0 }}>
-                      <CaretDownIcon size={16} color="var(--color-text-muted)" />
-                    </motion.div>
-                  </button>
-                  <AnimatePresence initial={false}>
-                    {openFaq === i && (
+                <motion.div key={i}>
+                  <Card className="overflow-hidden py-0">
+                    <Button
+                      variant="ghost"
+                      onClick={() => setOpenFaq(openFaq === i ? null : i)}
+                      className="h-auto w-full justify-between gap-3 px-5 py-4 text-left font-normal hover:bg-transparent"
+                    >
+                      <span className="text-[0.875rem] font-medium text-foreground">
+                        {faq.q}
+                      </span>
                       <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
+                        animate={{ rotate: openFaq === i ? 180 : 0 }}
                         transition={{ duration: 0.2 }}
-                        style={{ overflow: 'hidden' }}
+                        className="shrink-0"
                       >
-                        <p style={{ borderTop: '1px solid var(--color-border)', color: 'var(--color-text-secondary)', fontSize: '0.875rem', lineHeight: 1.7, padding: '14px 20px 18px' }}>
-                          {faq.a}
-                        </p>
+                        <CaretDownIcon size={16} className="text-muted-foreground" />
                       </motion.div>
-                    )}
-                  </AnimatePresence>
+                    </Button>
+                    <AnimatePresence initial={false}>
+                      {openFaq === i && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="overflow-hidden"
+                        >
+                          <p className="border-t border-border px-5 pt-3.5 pb-[18px] text-[0.875rem] leading-relaxed text-muted-foreground">
+                            {faq.a}
+                          </p>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </Card>
                 </motion.div>
               ))}
             </div>
@@ -366,40 +355,36 @@ export default function Pricing() {
         </section>
 
         {/* ─── Final CTA ─── */}
-        <section style={{ padding: '72px 24px', textAlign: 'center' }}>
-          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
-            <h2 style={{ color: 'var(--color-text)', fontSize: 'clamp(1.5rem, 3vw, 2.2rem)', fontWeight: 700, letterSpacing: '-0.03em', marginBottom: 12 }}>
+        <section className="px-6 py-[72px] text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            <h2 className="mb-3 text-[clamp(1.5rem,3vw,2.2rem)] font-bold tracking-tight text-foreground">
               Start Free, Upgrade When Ready
             </h2>
-            <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.95rem', lineHeight: 1.7, margin: '0 auto 28px', maxWidth: 420 }}>
+            <p className="mx-auto mb-7 max-w-[420px] text-[0.95rem] leading-relaxed text-muted-foreground">
               No credit card required. Build your habit streak first — upgrade when you need the power-user features.
             </p>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'center' }}>
-              <Link to="/register" className="btn btn-primary" style={{ fontSize: '1rem', padding: '11px 28px' }}>
-                Create Free Account
-              </Link>
-              <Link to="/login" className="btn btn-ghost" style={{ border: '1px solid var(--color-border)', fontSize: '1rem', padding: '11px 24px' }}>
-                Sign In
-              </Link>
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <Button size="lg" className="px-7 text-base" asChild>
+                <Link to="/register">Create Free Account</Link>
+              </Button>
+              <Button variant="outline" size="lg" className="px-6 text-base" asChild>
+                <Link to="/login">Sign In</Link>
+              </Button>
             </div>
           </motion.div>
         </section>
 
         {/* ─── Footer ─── */}
-        <footer style={{ borderTop: '1px solid var(--color-border)', padding: '28px 24px' }}>
-          <div style={{
-            alignItems: 'center',
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: 12,
-            justifyContent: 'space-between',
-            margin: '0 auto',
-            maxWidth: 1080,
-          }}>
-            <Link to="/" style={{ color: 'var(--color-accent)', fontWeight: 700, textDecoration: 'none' }}>
+        <footer className="border-t border-border px-6 py-7">
+          <div className="mx-auto flex max-w-[1080px] flex-wrap items-center justify-between gap-3">
+            <Link to="/" className="font-bold text-primary no-underline">
               {APP_CONFIG.name}
             </Link>
-            <p style={{ color: 'var(--color-text-muted)', fontSize: '0.78rem' }}>
+            <p className="text-[0.78rem] text-muted-foreground">
               © {new Date().getFullYear()} {APP_CONFIG.name}
             </p>
           </div>

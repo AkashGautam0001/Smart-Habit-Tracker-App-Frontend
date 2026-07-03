@@ -18,9 +18,9 @@ export const PHASE_LABELS: Record<PomodoroPhase, string> = {
 };
 
 export const PHASE_COLORS: Record<PomodoroPhase, string> = {
-  focus: 'var(--color-accent)',
-  short_break: '#22c55e',
-  long_break: '#06b6d4',
+  focus: 'var(--primary)',
+  short_break: 'var(--chart-2)',
+  long_break: 'var(--chart-4)',
 };
 
 export const ALARM_SOUNDS = [

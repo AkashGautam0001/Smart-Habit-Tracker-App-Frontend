@@ -1,25 +1,29 @@
 import { useState, useRef, useEffect } from 'react';
+import type { ElementType } from 'react';
 import { motion } from 'framer-motion';
-import { SpeakerHighIcon, SpeakerSlashIcon, LockIcon } from '@phosphor-icons/react';
+import * as Icons from '@phosphor-icons/react';
+import { SpeakerHighIcon, SpeakerSlashIcon, LockIcon, PlayIcon, StopIcon } from '@phosphor-icons/react';
+import { useNavigate } from 'react-router-dom';
 import { AMBIENT_SOUNDS } from '../../config/sounds.config';
 import { usePlan } from '../../hooks/usePlan';
-import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 
 export default function SoundPlayer() {
   const { isPro } = usePlan();
-  const navigate  = useNavigate();
+  const navigate = useNavigate();
 
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [playing,  setPlaying]  = useState(false);
-  const [volume,   setVolume]   = useState(60);
+  const [playing, setPlaying] = useState(false);
+  const [volume, setVolume] = useState(60);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Apply volume whenever it changes
   useEffect(() => {
     if (audioRef.current) audioRef.current.volume = volume / 100;
   }, [volume]);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (audioRef.current) {
@@ -41,7 +45,7 @@ export default function SoundPlayer() {
     const audio = new Audio(sound.src);
     audio.loop = true;
     audio.volume = volume / 100;
-    audio.play().catch(() => { /* file may not exist in dev */ });
+    audio.play().catch(() => {});
     audioRef.current = audio;
     setPlaying(true);
   };
@@ -53,7 +57,8 @@ export default function SoundPlayer() {
 
   const handleTile = (id: string) => {
     if (activeId === id) {
-      if (playing) { pause(); } else { play(id); }
+      if (playing) pause();
+      else play(id);
     } else {
       setActiveId(id);
       play(id);
@@ -68,122 +73,124 @@ export default function SoundPlayer() {
 
   if (!isPro) {
     return (
-      <div className="card" style={{ padding: '14px 16px' }}>
-        <div style={{ alignItems: 'center', display: 'flex', gap: 10, marginBottom: 10 }}>
-          <SpeakerHighIcon size={16} weight="duotone" color="var(--color-text-muted)" />
-          <span style={{ color: 'var(--color-text)', fontSize: '0.875rem', fontWeight: 600 }}>Focus Music</span>
-          <span style={{
-            alignItems: 'center', background: 'rgba(251,191,36,0.15)', borderRadius: 4,
-            color: '#fbbf24', display: 'inline-flex', fontSize: '0.65rem', fontWeight: 700,
-            gap: 3, padding: '2px 6px',
-          }}>
-            <LockIcon size={10} weight="fill" /> PRO
-          </span>
-        </div>
-        <p style={{ color: 'var(--color-text-muted)', fontSize: '0.78rem', marginBottom: 10 }}>
-          Lo-fi beats, rain, forest, white noise & café sounds to keep you in flow.
-        </p>
-        <button onClick={() => navigate('/upgrade')}
-          style={{
-            background: 'var(--color-surface-hover)', border: '1px solid var(--color-border)',
-            borderRadius: 'var(--radius-md)', color: 'var(--color-text-secondary)',
-            cursor: 'pointer', fontSize: '0.78rem', padding: '6px 14px', width: '100%',
-          }}>
-          Upgrade to Pro
-        </button>
-      </div>
+      <Card>
+        <CardHeader className="flex-row items-center gap-2 space-y-0 px-4 py-3.5 pb-2">
+          <SpeakerHighIcon size={16} weight="duotone" className="text-muted-foreground" />
+          <CardTitle className="text-sm">Focus Music</CardTitle>
+          <Badge variant="outline" className="border-amber-500/30 bg-amber-500/10 text-amber-400">
+            <LockIcon size={10} weight="fill" className="mr-1" />
+            PRO
+          </Badge>
+        </CardHeader>
+        <CardContent className="px-4 pb-4">
+          <p className="mb-3 text-xs text-muted-foreground">
+            Lo-fi beats, rain, forest, white noise & café sounds to keep you in flow.
+          </p>
+          <Button variant="outline" className="w-full" size="sm" onClick={() => navigate('/upgrade')}>
+            Upgrade to Pro
+          </Button>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <div className="card" style={{ padding: '14px 16px' }}>
-      <div style={{ alignItems: 'center', display: 'flex', gap: 8, marginBottom: 12 }}>
-        {playing && activeId
-          ? <SpeakerHighIcon size={15} weight="fill" color="var(--color-accent)" />
-          : <SpeakerSlashIcon size={15} weight="duotone" color="var(--color-text-muted)" />}
-        <span style={{ color: 'var(--color-text)', fontSize: '0.875rem', fontWeight: 600 }}>
-          Focus Music
-        </span>
+    <Card>
+      <CardHeader className="flex-row items-center gap-2 space-y-0 px-4 py-3.5 pb-2">
+        {playing && activeId ? (
+          <SpeakerHighIcon size={15} weight="fill" className="text-primary" />
+        ) : (
+          <SpeakerSlashIcon size={15} weight="duotone" className="text-muted-foreground" />
+        )}
+        <CardTitle className="text-sm">Focus Music</CardTitle>
         {playing && activeId && (
-          <span style={{ color: 'var(--color-text-muted)', fontSize: '0.72rem', marginLeft: 'auto' }}>
+          <span className="ml-auto text-xs text-muted-foreground">
             {AMBIENT_SOUNDS.find((s) => s.id === activeId)?.label}
           </span>
         )}
-      </div>
+      </CardHeader>
 
-      {/* Sound tiles */}
-      <div style={{ display: 'grid', gap: 6, gridTemplateColumns: 'repeat(5, 1fr)', marginBottom: 12 }}>
-        {AMBIENT_SOUNDS.map((sound) => {
-          const isActive = activeId === sound.id;
-          const isPlaying = isActive && playing;
-          return (
-            <motion.button
-              key={sound.id}
-              whileTap={{ scale: 0.92 }}
-              onClick={() => handleTile(sound.id)}
-              title={sound.label}
-              style={{
-                alignItems: 'center', border: `1.5px solid ${isActive ? 'var(--color-accent)' : 'var(--color-border)'}`,
-                borderRadius: 8, cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 3,
-                justifyContent: 'center', minHeight: 'auto', minWidth: 'auto',
-                padding: '8px 4px',
-                background: isActive
-                  ? 'color-mix(in srgb, var(--color-accent) 12%, var(--color-surface))'
-                  : 'var(--color-surface-hover)',
-                transition: 'all 0.15s',
-              }}
-            >
-              <span style={{ fontSize: '1rem', lineHeight: 1 }}>{sound.emoji}</span>
-              <span style={{
-                color: isActive ? 'var(--color-accent)' : 'var(--color-text-muted)',
-                fontSize: '0.6rem', fontWeight: isActive ? 600 : 400,
-                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%', textAlign: 'center',
-              }}>
-                {isPlaying ? '▶' : ''}{sound.label.split(' ')[0]}
-              </span>
-            </motion.button>
-          );
-        })}
-      </div>
+      <CardContent className="px-4 pb-4">
+        <div className="mb-3 grid grid-cols-5 gap-1.5">
+          {AMBIENT_SOUNDS.map((sound) => {
+            const isActive = activeId === sound.id;
+            const isPlaying = isActive && playing;
+            return (
+              <motion.button
+                key={sound.id}
+                whileTap={{ scale: 0.92 }}
+                onClick={() => handleTile(sound.id)}
+                title={sound.label}
+                className={cn(
+                  'flex min-h-0 min-w-0 flex-col items-center justify-center gap-0.5 rounded-lg border px-1 py-2 transition-colors',
+                  isActive
+                    ? 'border-primary bg-primary/10'
+                    : 'border-border bg-secondary hover:bg-accent',
+                )}
+              >
+                {(() => {
+                  const SoundIcon = (Icons as unknown as Record<string, ElementType>)[sound.icon];
+                  return SoundIcon ? (
+                    <SoundIcon
+                      size={18}
+                      weight={isActive ? 'fill' : 'duotone'}
+                      className={isActive ? 'text-primary' : 'text-muted-foreground'}
+                    />
+                  ) : null;
+                })()}
+                <span
+                  className={cn(
+                    'flex w-full items-center justify-center gap-0.5 truncate text-center text-[0.6rem]',
+                    isActive ? 'font-semibold text-primary' : 'text-muted-foreground',
+                  )}
+                >
+                  {isPlaying && <PlayIcon size={7} weight="fill" />}
+                  {sound.label}
+                </span>
+              </motion.button>
+            );
+          })}
+        </div>
 
-      {/* Volume slider */}
-      <div style={{ alignItems: 'center', display: 'flex', gap: 8 }}>
-        <button
-          onClick={() => handleVolume(volume === 0 ? 60 : 0)}
-          style={{
-            background: 'none', border: 'none', color: 'var(--color-text-muted)',
-            cursor: 'pointer', display: 'flex', flexShrink: 0,
-            minHeight: 'auto', minWidth: 'auto', padding: 2,
-          }}
-        >
-          {volume === 0
-            ? <SpeakerSlashIcon size={14} weight="bold" />
-            : <SpeakerHighIcon size={14} weight="bold" />
-          }
-        </button>
-        <input
-          type="range" min={0} max={100} value={volume}
-          onChange={(e) => handleVolume(Number(e.target.value))}
-          style={{ accentColor: 'var(--color-accent)', flex: 1 }}
-          aria-label="Volume"
-        />
-        <span style={{ color: 'var(--color-text-muted)', fontSize: '0.7rem', minWidth: 26, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
-          {volume}%
-        </span>
-      </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => handleVolume(volume === 0 ? 60 : 0)}
+            aria-label={volume === 0 ? 'Unmute' : 'Mute'}
+          >
+            {volume === 0 ? (
+              <SpeakerSlashIcon size={14} weight="bold" />
+            ) : (
+              <SpeakerHighIcon size={14} weight="bold" />
+            )}
+          </Button>
+          <input
+            type="range"
+            min={0}
+            max={100}
+            value={volume}
+            onChange={(e) => handleVolume(Number(e.target.value))}
+            className="h-1.5 flex-1 cursor-pointer accent-primary"
+            aria-label="Volume"
+          />
+          <span className="min-w-6.5 text-right text-xs tabular-nums text-muted-foreground">
+            {volume}%
+          </span>
+        </div>
 
-      {/* Stop button */}
-      {activeId && (
-        <button
-          onClick={() => { pause(); setActiveId(null); }}
-          style={{
-            background: 'none', border: 'none', color: 'var(--color-text-muted)',
-            cursor: 'pointer', fontSize: '0.72rem', marginTop: 8, padding: 0, textAlign: 'left',
-          }}
-        >
-          ■ Stop
-        </button>
-      )}
-    </div>
+        {activeId && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="mt-2 h-auto gap-1 p-0 text-xs text-muted-foreground"
+            onClick={() => { pause(); setActiveId(null); }}
+          >
+            <StopIcon size={10} weight="fill" />
+            Stop
+          </Button>
+        )}
+      </CardContent>
+    </Card>
   );
 }

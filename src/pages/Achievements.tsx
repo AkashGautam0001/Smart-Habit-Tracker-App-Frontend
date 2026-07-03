@@ -7,14 +7,60 @@ import { LockIcon } from '@phosphor-icons/react';
 import { apiClient } from '../api/client';
 import { ACHIEVEMENTS, CATEGORY_LABELS, type AchievementCategory } from '../config/achievements.config';
 import { APP_CONFIG } from '../config/app.config';
+import PageShell from '@/components/shared/PageShell';
+import PageHeader from '@/components/shared/PageHeader';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Progress } from '@/components/ui/progress';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { cn } from '@/lib/utils';
 
-const CATEGORY_COLORS: Record<string, string> = {
-  habits:     '#f97316',
-  focus:      '#6366f1',
-  tasks:      '#22c55e',
-  milestones: '#f59e0b',
-  special:    '#ec4899',
+const CATEGORY_STYLES: Record<string, {
+  badge: string;
+  icon: string;
+  iconBg: string;
+  border: string;
+  shadow: string;
+}> = {
+  habits: {
+    badge: 'bg-orange-500/15 text-orange-500',
+    icon: 'text-orange-500',
+    iconBg: 'bg-orange-500/15',
+    border: 'border-orange-500/25',
+    shadow: 'shadow-[0_0_16px_rgba(249,115,22,0.09)]',
+  },
+  focus: {
+    badge: 'bg-indigo-500/15 text-indigo-500',
+    icon: 'text-indigo-500',
+    iconBg: 'bg-indigo-500/15',
+    border: 'border-indigo-500/25',
+    shadow: 'shadow-[0_0_16px_rgba(99,102,241,0.09)]',
+  },
+  tasks: {
+    badge: 'bg-green-500/15 text-green-500',
+    icon: 'text-green-500',
+    iconBg: 'bg-green-500/15',
+    border: 'border-green-500/25',
+    shadow: 'shadow-[0_0_16px_rgba(34,197,94,0.09)]',
+  },
+  milestones: {
+    badge: 'bg-amber-500/15 text-amber-500',
+    icon: 'text-amber-500',
+    iconBg: 'bg-amber-500/15',
+    border: 'border-amber-500/25',
+    shadow: 'shadow-[0_0_16px_rgba(245,158,11,0.09)]',
+  },
+  special: {
+    badge: 'bg-pink-500/15 text-pink-500',
+    icon: 'text-pink-500',
+    iconBg: 'bg-pink-500/15',
+    border: 'border-pink-500/25',
+    shadow: 'shadow-[0_0_16px_rgba(236,72,153,0.09)]',
+  },
 };
+
+const DEFAULT_CATEGORY_STYLE = CATEGORY_STYLES.focus;
 
 const TABS: Array<{ id: AchievementCategory | 'all'; label: string }> = [
   { id: 'all',        label: 'All' },
@@ -66,62 +112,44 @@ export default function Achievements() {
         <meta name="robots" content="noindex" />
       </Helmet>
 
-      <div style={{ maxWidth: 840 }}>
+      <PageShell className="max-w-[840px]">
+        <PageHeader
+          title="Achievements"
+          description={isLoading ? 'Loading…' : `${unlockedCount} of ${total} unlocked`}
+        />
 
-        {/* Header */}
-        <div style={{ marginBottom: 20 }}>
-          <h1 style={{ color: 'var(--color-text)', fontSize: '1.3rem', fontWeight: 700 }}>Achievements</h1>
-          <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.85rem', marginTop: 4 }}>
-            {isLoading ? 'Loading…' : `${unlockedCount} of ${total} unlocked`}
-          </p>
+        {!isLoading && (
+          <Progress
+            value={(unlockedCount / total) * 100}
+            className="h-1.5 bg-muted"
+          />
+        )}
 
-          {/* Progress bar */}
-          {!isLoading && (
-            <div style={{ background: 'var(--color-surface-hover)', borderRadius: 99, height: 5, marginTop: 10, overflow: 'hidden', width: '100%' }}>
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${(unlockedCount / total) * 100}%` }}
-                transition={{ duration: 1, ease: 'easeOut', delay: 0.1 }}
-                style={{ background: 'linear-gradient(90deg, var(--color-accent), #f59e0b)', borderRadius: 99, height: '100%' }}
-              />
-            </div>
-          )}
-        </div>
+        <Tabs
+          value={activeTab}
+          onValueChange={(v) => setActiveTab(v as AchievementCategory | 'all')}
+        >
+          <TabsList className="h-auto flex-wrap">
+            {TABS.map((tab) => (
+              <TabsTrigger key={tab.id} value={tab.id}>
+                {tab.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
 
-        {/* Category tabs */}
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 20 }}>
-          {TABS.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              style={{
-                background: activeTab === tab.id ? 'var(--color-accent)' : 'var(--color-surface)',
-                border: `1px solid ${activeTab === tab.id ? 'var(--color-accent)' : 'var(--color-border)'}`,
-                borderRadius: 99,
-                color: activeTab === tab.id ? '#fff' : 'var(--color-text-secondary)',
-                cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600,
-                minHeight: 'auto', minWidth: 'auto', padding: '6px 14px',
-                transition: 'all 0.15s',
-              }}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Achievement grid */}
         {isLoading ? (
-          <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-3">
             {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="card" style={{ height: 140, opacity: 0.4 }} />
+              <Skeleton key={i} className="h-[140px] rounded-xl" />
             ))}
           </div>
         ) : (
-          <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-3">
             {sorted.map((a, i) => {
               const server = serverMap[a.id];
               const isUnlocked = !!server?.isUnlocked;
-              const color = CATEGORY_COLORS[a.category] ?? 'var(--color-accent)';
+              const styles = CATEGORY_STYLES[a.category] ?? DEFAULT_CATEGORY_STYLE;
               const IconEl = (Icons as unknown as Record<string, React.ElementType>)[a.icon] ?? Icons.Star;
               const unlockedDate = server?.unlockedAt
                 ? new Date(server.unlockedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
@@ -133,82 +161,70 @@ export default function Achievements() {
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.025 }}
-                  className="card"
-                  style={{
-                    border: isUnlocked ? `1px solid ${color}40` : '1px solid var(--color-border)',
-                    boxShadow: isUnlocked ? `0 0 16px ${color}18` : 'none',
-                    opacity: isUnlocked ? 1 : 0.6,
-                    padding: '18px 16px',
-                    position: 'relative',
-                    transition: 'all 0.2s',
-                  }}
                 >
-                  {/* Icon */}
-                  <div style={{
-                    alignItems: 'center',
-                    background: isUnlocked
-                      ? `color-mix(in srgb, ${color} 15%, transparent)`
-                      : 'var(--color-surface-hover)',
-                    borderRadius: '50%',
-                    display: 'flex',
-                    height: 48,
-                    justifyContent: 'center',
-                    marginBottom: 12,
-                    width: 48,
-                  }}>
-                    {isUnlocked
-                      ? <IconEl size={24} weight="duotone" color={color} />
-                      : <LockIcon size={20} weight="duotone" color="var(--color-text-muted)" />
-                    }
-                  </div>
-
-                  {/* Badge pill */}
-                  <div style={{
-                    background: `color-mix(in srgb, ${color} 15%, transparent)`,
-                    borderRadius: 99,
-                    color,
-                    display: 'inline-block',
-                    fontSize: '0.65rem',
-                    fontWeight: 700,
-                    letterSpacing: '0.06em',
-                    marginBottom: 6,
-                    padding: '2px 8px',
-                    textTransform: 'uppercase',
-                  }}>
-                    {CATEGORY_LABELS[a.category]}
-                  </div>
-
-                  {/* Title */}
-                  <div style={{ color: 'var(--color-text)', fontSize: '0.875rem', fontWeight: 600, marginBottom: 4 }}>
-                    {a.title}
-                  </div>
-
-                  {/* Description */}
-                  <div style={{ color: 'var(--color-text-muted)', fontSize: '0.75rem', lineHeight: 1.4 }}>
-                    {a.description}
-                  </div>
-
-                  {/* Unlock info / XP reward */}
-                  <div style={{ alignItems: 'center', display: 'flex', justifyContent: 'space-between', marginTop: 10 }}>
-                    {isUnlocked && unlockedDate ? (
-                      <span style={{ color: 'var(--color-text-muted)', fontSize: '0.68rem' }}>
-                        🗓 {unlockedDate}
-                      </span>
-                    ) : (
-                      <span />
+                  <Card
+                    className={cn(
+                      'relative transition-all duration-200',
+                      isUnlocked ? styles.border : 'border-border',
+                      isUnlocked ? styles.shadow : 'shadow-none',
+                      isUnlocked ? 'opacity-100' : 'opacity-60',
                     )}
-                    {a.xpReward > 0 && (
-                      <span style={{ color: isUnlocked ? '#f59e0b' : 'var(--color-text-muted)', fontSize: '0.72rem', fontWeight: 700 }}>
-                        +{a.xpReward} XP
-                      </span>
-                    )}
-                  </div>
+                  >
+                    <CardContent className="px-4 py-[18px]">
+                      <div
+                        className={cn(
+                          'mb-3 flex size-12 items-center justify-center rounded-full',
+                          isUnlocked ? styles.iconBg : 'bg-muted',
+                        )}
+                      >
+                        {isUnlocked
+                          ? <IconEl size={24} weight="duotone" className={styles.icon} />
+                          : <LockIcon size={20} weight="duotone" className="text-muted-foreground" />
+                        }
+                      </div>
+
+                      <Badge
+                        variant="secondary"
+                        className={cn('mb-1.5 text-[0.65rem] font-bold uppercase tracking-wider', styles.badge)}
+                      >
+                        {CATEGORY_LABELS[a.category]}
+                      </Badge>
+
+                      <div className="mb-1 text-sm font-semibold text-foreground">
+                        {a.title}
+                      </div>
+
+                      <div className="text-xs leading-snug text-muted-foreground">
+                        {a.description}
+                      </div>
+
+                      <div className="mt-2.5 flex items-center justify-between">
+                        {isUnlocked && unlockedDate ? (
+                          <span className="text-[0.68rem] text-muted-foreground">
+                            🗓 {unlockedDate}
+                          </span>
+                        ) : (
+                          <span />
+                        )}
+                        {a.xpReward > 0 && (
+                          <span
+                            className={cn(
+                              'text-[0.72rem] font-bold',
+                              isUnlocked ? 'text-amber-500' : 'text-muted-foreground',
+                            )}
+                          >
+                            +{a.xpReward} XP
+                          </span>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
                 </motion.div>
               );
             })}
           </div>
         )}
-      </div>
+      </PageShell>
     </>
   );
 }

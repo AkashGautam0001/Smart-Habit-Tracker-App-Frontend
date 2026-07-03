@@ -1,6 +1,15 @@
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { XIcon, TimerIcon, FolderOpenIcon } from '@phosphor-icons/react';
+import { TimerIcon, FolderOpenIcon, AlarmIcon } from '@phosphor-icons/react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { useSettings } from '../../hooks/useSettings';
 import type { Task, Project } from '../../types';
 
@@ -10,7 +19,7 @@ interface Props {
   onSubmit: (data: { title: string; subject: string; estimatedPomodoros: number; projectId?: string }) => void;
   initial?: Task;
   isPending?: boolean;
-  projects?: Project[];   // Pro users only — list of projects to choose from
+  projects?: Project[];
 }
 
 const POMODORO_OPTIONS = [1, 2, 3, 4, 5, 6, 8];
@@ -43,193 +52,127 @@ export default function TaskForm({ open, onClose, onSubmit, initial, isPending, 
   };
 
   return (
-    <AnimatePresence>
-      {open && (
-        <>
-          {/* Backdrop */}
-          <motion.div
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            onClick={onClose}
-            style={{
-              background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
-              bottom: 0, left: 0, position: 'fixed', right: 0, top: 0, zIndex: 200,
-            }}
-          />
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="sm:max-w-110">
+        <DialogHeader>
+          <DialogTitle>{initial ? 'Edit Task' : 'New Task'}</DialogTitle>
+        </DialogHeader>
 
-          {/* Modal */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 8 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 8 }}
-            style={{
-              background: 'var(--color-surface)',
-              border: '1px solid var(--color-border)',
-              borderRadius: 'var(--radius-xl)',
-              boxShadow: 'var(--shadow-lg)',
-              left: '50%', maxWidth: 440, padding: 24,
-              position: 'fixed', top: '50%',
-              transform: 'translate(-50%, -50%)',
-              width: 'calc(100% - 32px)',
-              zIndex: 201,
-            }}
-          >
-            <div style={{ alignItems: 'center', display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
-              <h2 style={{ color: 'var(--color-text)', fontSize: '1rem', fontWeight: 600 }}>
-                {initial ? 'Edit Task' : 'New Task'}
-              </h2>
-              <button
-                onClick={onClose}
-                style={{
-                  alignItems: 'center', background: 'var(--color-surface-hover)',
-                  border: 'none', borderRadius: '50%', color: 'var(--color-text-muted)',
-                  cursor: 'pointer', display: 'flex', height: 30,
-                  justifyContent: 'center', minHeight: 'auto', minWidth: 'auto', width: 30,
-                }}
-              >
-                <XIcon size={16} weight="bold" />
-              </button>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="task-title">Task</Label>
+            <Input
+              id="task-title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="What needs to be done?"
+              autoFocus
+              maxLength={200}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Subject</Label>
+            <div className="flex flex-wrap gap-2">
+              {settings.subjects.map((s) => {
+                const selected = subject === s.label;
+                return (
+                  <Button
+                    key={s.id}
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className={cn(
+                      'h-7 text-xs font-semibold',
+                      selected &&
+                        'border-(--picker-color)/50 bg-[color-mix(in_srgb,var(--picker-color)_15%,transparent)] text-(--picker-color) hover:bg-[color-mix(in_srgb,var(--picker-color)_20%,transparent)]',
+                    )}
+                    style={selected ? { '--picker-color': s.color } as React.CSSProperties : undefined}
+                    onClick={() => setSubject(s.label)}
+                  >
+                    {s.label}
+                  </Button>
+                );
+              })}
             </div>
+          </div>
 
-            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              {/* Title */}
-              <div>
-                <label style={{ color: 'var(--color-text-secondary)', display: 'block', fontSize: '0.8rem', fontWeight: 500, marginBottom: 6 }}>
-                  Task
-                </label>
-                <input
-                  className="input"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="What needs to be done?"
-                  autoFocus
-                  maxLength={200}
-                />
-              </div>
-
-              {/* Subject */}
-              <div>
-                <label style={{ color: 'var(--color-text-secondary)', display: 'block', fontSize: '0.8rem', fontWeight: 500, marginBottom: 6 }}>
-                  Subject
-                </label>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                  {settings.subjects.map((s) => (
-                    <button
-                      key={s.id}
-                      type="button"
-                      onClick={() => setSubject(s.label)}
-                      style={{
-                        alignItems: 'center',
-                        background: subject === s.label
-                          ? `color-mix(in srgb, ${s.color} 15%, var(--color-surface))`
-                          : 'var(--color-surface-hover)',
-                        border: `1px solid ${subject === s.label ? s.color + '80' : 'var(--color-border)'}`,
-                        borderRadius: 'var(--radius-md)',
-                        color: subject === s.label ? s.color : 'var(--color-text-secondary)',
-                        cursor: 'pointer', display: 'inline-flex',
-                        fontSize: '0.8rem', fontWeight: 600,
-                        gap: 4, minHeight: 'auto', minWidth: 'auto',
-                        padding: '6px 12px', transition: 'all 0.15s',
-                      }}
-                    >
-                      {s.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Estimated Pomodoros */}
-              <div>
-                <label style={{ alignItems: 'center', color: 'var(--color-text-secondary)', display: 'flex', fontSize: '0.8rem', fontWeight: 500, gap: 4, marginBottom: 8 }}>
-                  <TimerIcon size={14} /> Estimated Sessions
-                </label>
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  {POMODORO_OPTIONS.map((n) => (
-                    <button
-                      key={n}
-                      type="button"
-                      onClick={() => setEstimated(n)}
-                      style={{
-                        alignItems: 'center',
-                        background: estimated === n ? 'var(--color-accent)' : 'var(--color-surface-hover)',
-                        border: 'none', borderRadius: 'var(--radius-md)',
-                        color: estimated === n ? '#fff' : 'var(--color-text-secondary)',
-                        cursor: 'pointer', display: 'inline-flex',
-                        fontSize: '0.8rem', fontWeight: 600,
-                        gap: 3, minHeight: 'auto', minWidth: 'auto',
-                        padding: '6px 10px', transition: 'all 0.15s',
-                      }}
-                    >
-                      🍅 {n}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Project (Pro only — shown when projects list is provided) */}
-              {projects && projects.length > 0 && (
-                <div>
-                  <label style={{ alignItems: 'center', color: 'var(--color-text-secondary)', display: 'flex', fontSize: '0.8rem', fontWeight: 500, gap: 4, marginBottom: 8 }}>
-                    <FolderOpenIcon size={14} /> Project (optional)
-                  </label>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                    <button
-                      type="button"
-                      onClick={() => setProjectId('')}
-                      style={{
-                        padding: '6px 12px', borderRadius: 'var(--radius-md)', fontSize: '0.8rem', fontWeight: 500,
-                        background: !projectId ? 'var(--color-accent)' : 'var(--color-surface-hover)',
-                        border: `1px solid ${!projectId ? 'var(--color-accent)' : 'var(--color-border)'}`,
-                        color: !projectId ? '#fff' : 'var(--color-text-secondary)',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      None
-                    </button>
-                    {projects.map((p) => (
-                      <button
-                        key={p._id}
-                        type="button"
-                        onClick={() => setProjectId(p._id)}
-                        style={{
-                          display: 'flex', alignItems: 'center', gap: 6,
-                          padding: '6px 12px', borderRadius: 'var(--radius-md)', fontSize: '0.8rem', fontWeight: 500,
-                          background: projectId === p._id ? `color-mix(in srgb, ${p.color} 15%, var(--color-surface))` : 'var(--color-surface-hover)',
-                          border: `1px solid ${projectId === p._id ? p.color + '80' : 'var(--color-border)'}`,
-                          color: projectId === p._id ? p.color : 'var(--color-text-secondary)',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        <span style={{ width: 8, height: 8, borderRadius: '50%', background: p.color, flexShrink: 0 }} />
-                        {p.title}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Submit */}
-              <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
-                <button
+          <div className="space-y-2">
+            <Label className="gap-1">
+              <TimerIcon size={14} />
+              Estimated Sessions
+            </Label>
+            <div className="flex flex-wrap gap-1.5">
+              {POMODORO_OPTIONS.map((n) => (
+                <Button
+                  key={n}
                   type="button"
-                  onClick={onClose}
-                  className="btn btn-ghost"
-                  style={{ flex: 1 }}
+                  variant={estimated === n ? 'default' : 'outline'}
+                  size="sm"
+                  className="h-7 gap-1 text-xs font-semibold"
+                  onClick={() => setEstimated(n)}
                 >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={!title.trim() || isPending}
-                  className="btn btn-primary"
-                  style={{ flex: 2 }}
+                  <AlarmIcon size={11} weight={estimated === n ? 'fill' : 'regular'} />
+                  {n}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          {projects && projects.length > 0 && (
+            <div className="space-y-2">
+              <Label className="gap-1">
+                <FolderOpenIcon size={14} />
+                Project (optional)
+              </Label>
+              <div className="flex flex-wrap gap-1.5">
+                <Button
+                  type="button"
+                  variant={!projectId ? 'default' : 'outline'}
+                  size="sm"
+                  className="h-7 text-xs font-medium"
+                  onClick={() => setProjectId('')}
                 >
-                  {isPending ? 'Saving…' : initial ? 'Save Changes' : 'Add Task'}
-                </button>
+                  None
+                </Button>
+                {projects.map((p) => {
+                  const selected = projectId === p._id;
+                  return (
+                    <Button
+                      key={p._id}
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className={cn(
+                        'h-7 gap-1.5 text-xs font-medium',
+                        selected &&
+                          'border-(--picker-color)/50 bg-[color-mix(in_srgb,var(--picker-color)_15%,transparent)] text-(--picker-color) hover:bg-[color-mix(in_srgb,var(--picker-color)_20%,transparent)]',
+                      )}
+                      style={selected ? { '--picker-color': p.color } as React.CSSProperties : undefined}
+                      onClick={() => setProjectId(p._id)}
+                    >
+                      <span
+                        className="size-2 shrink-0 rounded-full bg-(--picker-color)"
+                        style={{ '--picker-color': p.color } as React.CSSProperties}
+                      />
+                      {p.title}
+                    </Button>
+                  );
+                })}
               </div>
-            </form>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+            </div>
+          )}
+
+          <div className="flex gap-2.5 pt-1">
+            <Button type="button" variant="outline" onClick={onClose} className="flex-1">
+              Cancel
+            </Button>
+            <Button type="submit" disabled={!title.trim() || isPending} className="flex-2">
+              {isPending ? 'Saving…' : initial ? 'Save Changes' : 'Add Task'}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }

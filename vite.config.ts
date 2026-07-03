@@ -1,9 +1,15 @@
+import path from 'path';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+    },
+  },
   plugins: [
     react(),
     tailwindcss(),
@@ -14,8 +20,8 @@ export default defineConfig({
         name: 'HabitFlow',
         short_name: 'HabitFlow',
         description: 'Habit Tracker & Pomodoro Learning OS',
-        theme_color: '#09090b',
-        background_color: '#09090b',
+        theme_color: '#000000',
+        background_color: '#000000',
         display: 'standalone',
         start_url: '/dashboard',
         icons: [

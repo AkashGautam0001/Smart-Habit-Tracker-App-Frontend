@@ -2,6 +2,16 @@ import { useEffect } from 'react';
 import { useSettings } from './useSettings';
 import { THEMES } from '../config/theme.config';
 
+const ACCENT_KEYS = [
+  '--color-accent',
+  '--color-accent-hover',
+  '--primary',
+  '--ring',
+  '--chart-1',
+  '--sidebar-primary',
+  '--sidebar-ring',
+] as const;
+
 export const useTheme = () => {
   const settings = useSettings();
 
@@ -13,13 +23,17 @@ export const useTheme = () => {
       root.style.setProperty(key, value);
     });
 
-    // Override accent color if user has a custom one
+  // Custom accent overrides both legacy and shadcn primary tokens
     if (settings.accentColor && settings.accentColor !== theme.vars['--color-accent']) {
-      root.style.setProperty('--color-accent', settings.accentColor);
+      ACCENT_KEYS.forEach((key) => {
+        root.style.setProperty(key, settings.accentColor!);
+      });
     }
 
-    // Font size
     const fontSizes: Record<string, string> = { sm: '13px', md: '15px', lg: '17px' };
     root.style.setProperty('--font-size-base', fontSizes[settings.fontSize] ?? '15px');
+
+    root.classList.add('dark');
+    root.setAttribute('data-theme', theme.id);
   }, [settings.theme, settings.accentColor, settings.fontSize]);
 };

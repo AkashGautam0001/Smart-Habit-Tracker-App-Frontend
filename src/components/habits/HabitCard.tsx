@@ -4,6 +4,15 @@ import { useSwipeable } from 'react-swipeable';
 import {
   CheckCircleIcon, CircleIcon, PencilSimpleIcon, TrashIcon, DotsThree,
 } from '@phosphor-icons/react';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { cn } from '@/lib/utils';
 import type { Habit } from '../../types';
 import StreakBadge from './StreakBadge';
 
@@ -16,10 +25,14 @@ interface Props {
 }
 
 export default function HabitCard({ habit, onToggle, onEdit, onArchive, isLogging }: Props) {
-  const [menuOpen, setMenuOpen] = useState(false);
   const [swipeOffset, setSwipeOffset] = useState(0);
 
   const isDone = habit.todayLog?.completed ?? false;
+
+  const handleToggle = () => {
+    navigator.vibrate?.(10);
+    onToggle(habit._id, !isDone);
+  };
 
   const swipeHandlers = useSwipeable({
     onSwiping: (e) => {
@@ -43,11 +56,6 @@ export default function HabitCard({ habit, onToggle, onEdit, onArchive, isLoggin
     preventScrollOnSwipe: false,
   });
 
-  const handleToggle = () => {
-    navigator.vibrate?.(10);
-    onToggle(habit._id, !isDone);
-  };
-
   return (
     <motion.div
       layout
@@ -55,63 +63,64 @@ export default function HabitCard({ habit, onToggle, onEdit, onArchive, isLoggin
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
       transition={{ duration: 0.2 }}
-      style={{ position: 'relative', userSelect: 'none' }}
+      className="relative select-none"
     >
-      {/* Swipe hint background */}
       {swipeOffset > 0 && (
-        <div style={{
-          position: 'absolute', inset: 0, borderRadius: 'var(--radius-lg)',
-          background: 'color-mix(in srgb, var(--color-success) 20%, transparent)',
-          display: 'flex', alignItems: 'center', paddingLeft: 20,
-        }}>
-          <CheckCircleIcon size={22} weight="fill" color="var(--color-success)" />
+        <div className="absolute inset-0 flex items-center rounded-xl bg-green-500/20 pl-5">
+          <CheckCircleIcon size={22} weight="fill" className="text-green-500" />
         </div>
       )}
 
-      <div
-        {...swipeHandlers}
-        className="card"
-        style={{
-          alignItems: 'center', display: 'flex', gap: 14, padding: '14px 16px',
-          transform: `translateX(${swipeOffset}px)`,
-          transition: swipeOffset === 0 ? 'transform 0.25s ease' : 'none',
-          opacity: isLogging ? 0.6 : 1,
-        }}
-        onClick={() => setMenuOpen(false)}
+      <motion.div
+        animate={{ x: swipeOffset }}
+        transition={swipeOffset === 0 ? { duration: 0.25, ease: 'easeOut' } : { duration: 0 }}
+        className="relative"
       >
-        {/* Color dot */}
-        <div style={{
-          width: 4, height: 36, borderRadius: 2, background: habit.color, flexShrink: 0,
-        }} />
+      <Card
+        {...swipeHandlers}
+        className={cn(
+          'flex-row items-center gap-3.5 py-0 shadow-none [--card-spacing:0]',
+          isLogging && 'opacity-60',
+        )}
+      >
+        <div
+          className="h-9 w-1 shrink-0 rounded-sm bg-[var(--habit-color)]"
+          style={{ '--habit-color': habit.color } as React.CSSProperties}
+        />
 
-        {/* Check button */}
-        <motion.button
-          whileTap={{ scale: 0.85 }}
-          onClick={handleToggle}
+        <Button
+          asChild
+          variant="ghost"
+          size="icon-sm"
           disabled={isLogging}
-          style={{
-            background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0,
-            minHeight: 'auto', minWidth: 'auto', padding: 2,
-            color: isDone ? 'var(--color-success)' : 'var(--color-border)',
-          }}
-          aria-label={isDone ? 'Unmark habit' : 'Complete habit'}
+          className={cn(
+            'shrink-0',
+            isDone ? 'text-green-500 hover:text-green-500' : 'text-muted-foreground/40 hover:text-muted-foreground/60',
+          )}
         >
-          {isDone
-            ? <CheckCircleIcon size={26} weight="fill" />
-            : <CircleIcon size={26} weight="regular" />
-          }
-        </motion.button>
+          <motion.button
+            type="button"
+            whileTap={{ scale: 0.85 }}
+            onClick={handleToggle}
+            aria-label={isDone ? 'Unmark habit' : 'Complete habit'}
+          >
+            {isDone
+              ? <CheckCircleIcon size={26} weight="fill" />
+              : <CircleIcon size={26} weight="regular" />
+            }
+          </motion.button>
+        </Button>
 
-        {/* Text */}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ alignItems: 'center', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <span style={{
-              color: isDone ? 'var(--color-text-secondary)' : 'var(--color-text)',
-              fontSize: '0.9rem', fontWeight: 500,
-              textDecoration: isDone ? 'line-through' : 'none',
-              textDecorationColor: 'var(--color-text-muted)',
-              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-            }}>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <span
+              className={cn(
+                'truncate text-[0.9rem] font-medium',
+                isDone
+                  ? 'text-muted-foreground line-through decoration-muted-foreground/60'
+                  : 'text-foreground',
+              )}
+            >
               {habit.title}
             </span>
             {(habit.currentStreak ?? 0) > 0 && (
@@ -119,65 +128,42 @@ export default function HabitCard({ habit, onToggle, onEdit, onArchive, isLoggin
             )}
           </div>
           {habit.description && (
-            <p style={{ color: 'var(--color-text-muted)', fontSize: '0.78rem', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <p className="mt-0.5 truncate text-[0.78rem] text-muted-foreground">
               {habit.description}
             </p>
           )}
         </div>
 
-        {/* Longest streak */}
         {(habit.longestStreak ?? 0) > 0 && (
-          <div style={{ color: 'var(--color-text-muted)', fontSize: '0.72rem', flexShrink: 0, textAlign: 'right' }}>
+          <div className="shrink-0 text-right text-[0.72rem] text-muted-foreground">
             Best {habit.longestStreak}d
           </div>
         )}
 
-        {/* Menu */}
-        <div style={{ position: 'relative', flexShrink: 0 }}>
-          <button
-            onClick={(e) => { e.stopPropagation(); setMenuOpen((o) => !o); }}
-            style={{
-              background: 'none', border: 'none', cursor: 'pointer', padding: 4,
-              color: 'var(--color-text-muted)', minHeight: 'auto', minWidth: 'auto', borderRadius: 6,
-            }}
-            aria-label="Habit options"
-          >
-            <DotsThree size={20} weight="bold" />
-          </button>
-
-          {menuOpen && (
-            <div style={{
-              position: 'absolute', right: 0, top: '100%', zIndex: 50,
-              background: 'var(--color-surface)', border: '1px solid var(--color-border)',
-              borderRadius: 10, boxShadow: 'var(--shadow-md)', minWidth: 140, overflow: 'hidden',
-            }}
-              onClick={(e) => e.stopPropagation()}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              className="shrink-0 text-muted-foreground"
+              aria-label="Habit options"
             >
-              <button
-                onClick={() => { setMenuOpen(false); onEdit(habit); }}
-                style={{
-                  alignItems: 'center', background: 'none', border: 'none', cursor: 'pointer', display: 'flex',
-                  gap: 10, minHeight: 'auto', minWidth: 'auto', padding: '10px 14px', width: '100%',
-                  color: 'var(--color-text-secondary)', fontSize: '0.85rem',
-                }}
-              >
-                <PencilSimpleIcon size={15} /> Edit
-              </button>
-              <button
-                onClick={() => { setMenuOpen(false); onArchive(habit._id); }}
-                style={{
-                  alignItems: 'center', background: 'none', border: 'none', cursor: 'pointer', display: 'flex',
-                  gap: 10, minHeight: 'auto', minWidth: 'auto', padding: '10px 14px', width: '100%',
-                  color: 'var(--color-danger)', fontSize: '0.85rem',
-                  borderTop: '1px solid var(--color-border)',
-                }}
-              >
-                <TrashIcon size={15} /> Remove
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
+              <DotsThree size={20} weight="bold" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="min-w-[140px]">
+            <DropdownMenuItem onClick={() => onEdit(habit)}>
+              <PencilSimpleIcon size={15} />
+              Edit
+            </DropdownMenuItem>
+            <DropdownMenuItem variant="destructive" onClick={() => onArchive(habit._id)}>
+              <TrashIcon size={15} />
+              Remove
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </Card>
+      </motion.div>
     </motion.div>
   );
 }

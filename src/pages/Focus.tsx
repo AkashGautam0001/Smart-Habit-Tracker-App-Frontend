@@ -1,22 +1,76 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
-import { CornersOutIcon, CornersInIcon, BookOpenIcon, ListChecksIcon } from '@phosphor-icons/react';
+import {
+  CornersOutIcon, CornersInIcon, BookOpenIcon, ListChecksIcon,
+  TimerIcon, FlameIcon, ClockIcon,
+} from '@phosphor-icons/react';
 import TimerRing from '../components/pomodoro/TimerRing';
 import TimerControls from '../components/pomodoro/TimerControls';
 import BreakModal from '../components/pomodoro/BreakModal';
 import SessionCard from '../components/pomodoro/SessionCard';
 import SoundPlayer from '../components/shared/SoundPlayer';
+import PageShell from '@/components/shared/PageShell';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
+import { Separator } from '@/components/ui/separator';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
+import { cn } from '@/lib/utils';
 import { useTimer } from '../hooks/useTimer';
 import { useSettings } from '../hooks/useSettings';
 import { useTasks } from '../hooks/useTasks';
 import { pomodoroApi } from '../api/pomodoro';
 import { APP_CONFIG } from '../config/app.config';
-import { PHASE_LABELS, PHASE_COLORS } from '../config/pomodoro.config';
+import { PHASE_LABELS, type PomodoroPhase } from '../config/pomodoro.config';
 import type { PomodoroSession, Task } from '../types';
 
-const SESSION_DOTS = 4;
+const NONE_VALUE = '__none__';
+
+function phaseTextClass(phase: PomodoroPhase) {
+  return {
+    focus: 'text-primary',
+    short_break: 'text-green-500',
+    long_break: 'text-cyan-500',
+  }[phase];
+}
+
+function phaseTabClass(phase: PomodoroPhase, active: boolean) {
+  if (!active) return 'text-muted-foreground hover:text-foreground';
+  return {
+    focus: 'bg-linear-to-r from-primary to-[#8b5cf6] text-primary-foreground shadow-md shadow-primary/25',
+    short_break: 'bg-linear-to-r from-green-500 to-emerald-500 text-white shadow-md shadow-green-500/25',
+    long_break: 'bg-linear-to-r from-cyan-500 to-sky-500 text-white shadow-md shadow-cyan-500/25',
+  }[phase];
+}
+
+function phaseDotClass(phase: PomodoroPhase, completed: boolean) {
+  if (!completed) return 'border-border bg-muted shadow-none';
+  return {
+    focus: 'border-primary bg-primary shadow-[0_0_6px] shadow-primary/50',
+    short_break: 'border-green-500 bg-green-500 shadow-[0_0_6px] shadow-green-500/50',
+    long_break: 'border-cyan-500 bg-cyan-500 shadow-[0_0_6px] shadow-cyan-500/50',
+  }[phase];
+}
+
+function phaseCardClass(phase: PomodoroPhase) {
+  return {
+    focus: 'bg-linear-to-b from-primary/10 via-card to-card',
+    short_break: 'bg-linear-to-b from-green-500/10 via-card to-card',
+    long_break: 'bg-linear-to-b from-cyan-500/10 via-card to-card',
+  }[phase];
+}
+
+function phaseProgressClass(phase: PomodoroPhase) {
+  return {
+    focus: '**:data-[slot=progress-indicator]:bg-primary',
+    short_break: '**:data-[slot=progress-indicator]:bg-green-500',
+    long_break: '**:data-[slot=progress-indicator]:bg-cyan-500',
+  }[phase];
+}
 
 export default function Focus() {
   const timer = useTimer();
@@ -24,26 +78,30 @@ export default function Focus() {
   const [focusMode, setFocusMode] = useState(false);
   const [showBreakModal, setShowBreakModal] = useState(false);
   const [prevPhase, setPrevPhase] = useState(timer.phase);
+  const manualSwitchRef = useRef(false);
 
-  // Detect phase change → show break modal
+  const handleTabSwitch = (p: PomodoroPhase) => {
+    manualSwitchRef.current = true;
+    timer.switchPhase(p);
+  };
+
   useEffect(() => {
     if (prevPhase === 'focus' && (timer.phase === 'short_break' || timer.phase === 'long_break')) {
-      setShowBreakModal(true);
+      if (!manualSwitchRef.current) setShowBreakModal(true);
     }
     if (timer.phase === 'focus') {
       setShowBreakModal(false);
     }
+    manualSwitchRef.current = false;
     setPrevPhase(timer.phase);
   }, [timer.phase, prevPhase]);
 
-  // Request notification permission once
   useEffect(() => {
     if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
       Notification.requestPermission();
     }
   }, []);
 
-  // Keyboard: Space = play/pause, F = focus mode, Esc = exit focus mode
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement) return;
@@ -58,7 +116,6 @@ export default function Focus() {
     return () => window.removeEventListener('keydown', handler);
   }, [timer]);
 
-  // Today's session history
   const todayDate = new Date().toISOString().slice(0, 10);
   const { data: todayTasks = [] } = useTasks(todayDate);
   const incompleteTasks = (todayTasks as Task[]).filter((t) => !t.isCompleted);
@@ -76,9 +133,6 @@ export default function Focus() {
   });
 
   const focusSessions = (sessionsData ?? []).filter((s: PomodoroSession) => s.type === 'focus');
-  const phaseColor = PHASE_COLORS[timer.phase];
-
-  // Session dot markers (completed vs upcoming vs current)
   const dotsInCycle = settings.sessionsUntilLongBreak;
   const completedInCycle = timer.sessionCount % dotsInCycle;
 
@@ -92,7 +146,6 @@ export default function Focus() {
         <meta name="robots" content="noindex" />
       </Helmet>
 
-      {/* Break modal overlay */}
       <BreakModal
         open={showBreakModal && !settings.autoStartBreaks}
         phase={timer.phase}
@@ -101,266 +154,274 @@ export default function Focus() {
         onSkip={() => { setShowBreakModal(false); timer.skip(); }}
       />
 
-      {/* Focus mode: fullscreen dark overlay hiding all chrome */}
       <AnimatePresence>
         {focusMode && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            style={{
-              alignItems: 'center',
-              background: 'var(--color-bg)',
-              bottom: 0, display: 'flex', flexDirection: 'column',
-              gap: 32, justifyContent: 'center',
-              left: 0, position: 'fixed', right: 0, top: 0,
-              zIndex: 150,
-            }}
+            className="fixed inset-0 z-150 flex flex-col items-center justify-center gap-8 bg-background"
           >
-            {/* Phase label */}
-            <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
-              style={{ color: phaseColor, fontSize: '0.9rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={cn(
+                'text-sm font-bold uppercase tracking-widest',
+                phaseTextClass(timer.phase),
+              )}
+            >
               {PHASE_LABELS[timer.phase]}
             </motion.div>
 
-            {/* Timer ring */}
             <TimerRing progress={timer.progress} phase={timer.phase} size={280} timeDisplay={timer.timeDisplay} />
 
-            {/* Subject */}
             {timer.subject && (
-              <div style={{ alignItems: 'center', color: 'var(--color-text-secondary)', display: 'flex', fontSize: '0.9rem', gap: 6 }}>
-                <BookOpenIcon size={16} /> {timer.subject}
+              <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                <BookOpenIcon size={16} />
+                {timer.subject}
               </div>
             )}
 
-            {/* Controls */}
             <TimerControls
-              isRunning={timer.isRunning} phase={timer.phase}
-              onStart={timer.start} onPause={timer.pause}
-              onSkip={timer.skip} onReset={timer.reset}
+              isRunning={timer.isRunning}
+              phase={timer.phase}
+              onStart={timer.start}
+              onPause={timer.pause}
+              onSkip={timer.skip}
+              onReset={timer.reset}
             />
 
-            {/* Exit focus mode */}
-            <button
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-2 gap-1.5"
               onClick={() => setFocusMode(false)}
-              style={{
-                alignItems: 'center', background: 'var(--color-surface-hover)',
-                border: '1px solid var(--color-border)', borderRadius: 10,
-                color: 'var(--color-text-muted)', cursor: 'pointer',
-                display: 'flex', fontSize: '0.8rem', gap: 6,
-                marginTop: 8, minHeight: 'auto', minWidth: 'auto', padding: '8px 16px',
-              }}
             >
-              <CornersInIcon size={16} /> Exit Focus Mode <span style={{ color: 'var(--color-border)', fontSize: '0.72rem' }}>Esc</span>
-            </button>
+              <CornersInIcon size={16} />
+              Exit Focus Mode
+              <span className="text-[0.72rem] text-muted-foreground/60">Esc</span>
+            </Button>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Normal page layout */}
-      <div style={{ display: 'grid', gap: 24, gridTemplateColumns: 'minmax(0,1fr) minmax(0,340px)', maxWidth: 860, alignItems: 'start' }}
-        className="focus-grid">
-        {/* ── Left column: TimerIcon ── */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-
-          {/* Phase tabs */}
-          <div style={{
-            alignItems: 'center', background: 'var(--color-surface)',
-            border: '1px solid var(--color-border)',
-            borderRadius: 10, display: 'flex', overflow: 'hidden', padding: 4, gap: 4,
-          }}>
-            {(['focus', 'short_break', 'long_break'] as const).map((p) => (
-              <button key={p}
-                onClick={() => {
-                  if (!timer.isRunning) {
-                    timer.reset();
-                  }
-                }}
-                style={{
-                  background: timer.phase === p ? PHASE_COLORS[p] + '22' : 'transparent',
-                  border: `1px solid ${timer.phase === p ? PHASE_COLORS[p] + '60' : 'transparent'}`,
-                  borderRadius: 7, color: timer.phase === p ? PHASE_COLORS[p] : 'var(--color-text-muted)',
-                  cursor: 'pointer', flex: 1, fontSize: '0.78rem', fontWeight: 600,
-                  minHeight: 'auto', minWidth: 'auto', padding: '6px 4px',
-                  transition: 'all 0.15s',
-                }}
-              >
-                {PHASE_LABELS[p]}
-              </button>
-            ))}
-          </div>
-
-          {/* Timer card */}
-          <div className="card" style={{ padding: '36px 24px', textAlign: 'center' }}>
-            {/* Session dots */}
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 28 }}>
-              {Array.from({ length: dotsInCycle }).map((_, i) => (
-                <div key={i} style={{
-                  background: i < completedInCycle ? phaseColor : 'var(--color-surface-hover)',
-                  border: `2px solid ${i < completedInCycle ? phaseColor : 'var(--color-border)'}`,
-                  borderRadius: '50%', height: 10, width: 10,
-                  transition: 'all 0.3s',
-                  boxShadow: i < completedInCycle ? `0 0 6px ${phaseColor}80` : 'none',
-                }} />
-              ))}
-            </div>
-
-            {/* Phase label */}
-            <div style={{ color: phaseColor, fontSize: '0.8rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 20 }}>
-              {PHASE_LABELS[timer.phase]}
-            </div>
-
-            {/* Ring */}
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 28 }}>
-              <TimerRing
-                progress={timer.progress}
-                phase={timer.phase}
-                size={window.innerWidth < 480 ? 200 : 240}
-                timeDisplay={timer.timeDisplay}
-              />
-            </div>
-
-            {/* Controls */}
-            <TimerControls
-              isRunning={timer.isRunning} phase={timer.phase}
-              onStart={timer.start} onPause={timer.pause}
-              onSkip={timer.skip} onReset={timer.reset}
-            />
-
-            {/* Keyboard hint */}
-            <p style={{ color: 'var(--color-text-muted)', fontSize: '0.72rem', marginTop: 16 }}>
-              Space to play/pause · F for focus mode
-            </p>
-          </div>
-
-          {/* Task selector */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {/* Subject selector */}
-            <div style={{ display: 'flex', gap: 10 }}>
-              <select
-                value={timer.subject ?? ''}
-                onChange={(e) => timer.setTask(null, e.target.value || null)}
-                className="input"
-                style={{ flex: 1 }}
-                aria-label="Select subject"
-              >
-                <option value="">No subject</option>
-                {settings.subjects.map((s) => (
-                  <option key={s.id} value={s.label}>{s.label}</option>
-                ))}
-              </select>
-
-              <motion.button whileTap={{ scale: 0.95 }} onClick={() => setFocusMode(true)}
-                style={{
-                  alignItems: 'center', background: 'var(--color-surface)',
-                  border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)',
-                  color: 'var(--color-text-secondary)', cursor: 'pointer',
-                  display: 'flex', flexShrink: 0, gap: 6,
-                  minHeight: 'auto', minWidth: 'auto', padding: '0 16px',
-                  fontSize: '0.85rem',
-                }}
-              >
-                <CornersOutIcon size={16} /> Focus Mode
-              </motion.button>
-            </div>
-
-            {/* Task picker — shows today's incomplete tasks */}
-            {incompleteTasks.length > 0 && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <ListChecksIcon size={15} color="var(--color-text-muted)" style={{ flexShrink: 0 }} />
-                <select
-                  value={timer.taskId ?? ''}
-                  onChange={(e) => {
-                    const task = incompleteTasks.find((t) => t._id === e.target.value);
-                    timer.setTask(e.target.value || null, task?.subject ?? null);
-                  }}
-                  className="input"
-                  aria-label="Link to task"
+      <PageShell>
+        <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,380px)]">
+          <div className="flex flex-col gap-5">
+            {/* Phase tabs */}
+            <div className="flex items-center gap-1 overflow-hidden rounded-xl border border-border bg-card p-1.5">
+              {(['focus', 'short_break', 'long_break'] as const).map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  disabled={timer.isRunning}
+                  className={cn(
+                    'flex-1 rounded-lg px-2 py-2 text-[0.82rem] font-semibold transition-all duration-200',
+                    'disabled:cursor-not-allowed disabled:opacity-60',
+                    phaseTabClass(p, timer.phase === p),
+                  )}
+                  onClick={() => handleTabSwitch(p)}
                 >
-                  <option value="">No task linked</option>
-                  {incompleteTasks.map((t: Task) => (
-                    <option key={t._id} value={t._id}>
-                      {t.subject ? `[${t.subject}] ` : ''}{t.title}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* ── Right column: Stats + History ── */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-
-          {/* Focus music */}
-          <SoundPlayer />
-
-          {/* Today's stats */}
-          <div className="card" style={{ padding: '16px' }}>
-            <h2 style={{ color: 'var(--color-text)', fontSize: '0.9rem', fontWeight: 600, marginBottom: 14 }}>
-              Today's Sessions
-            </h2>
-            <div style={{ display: 'grid', gap: 10, gridTemplateColumns: '1fr 1fr' }}>
-              {[
-                { label: 'Tomatoes', value: `🍅 ${todayStats?.tomatoCount ?? 0}` },
-                { label: 'Focus Time', value: `${todayStats?.totalMinutes ?? 0} min` },
-              ].map((s) => (
-                <div key={s.label} style={{ background: 'var(--color-surface-hover)', borderRadius: 8, padding: '10px 12px' }}>
-                  <div style={{ color: 'var(--color-text)', fontSize: '1rem', fontWeight: 700 }}>{s.value}</div>
-                  <div style={{ color: 'var(--color-text-muted)', fontSize: '0.72rem', marginTop: 2 }}>{s.label}</div>
-                </div>
+                  {PHASE_LABELS[p]}
+                </button>
               ))}
             </div>
 
-            {/* Subject breakdown */}
-            {(todayStats?.subjectBreakdown?.length ?? 0) > 0 && (
-              <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {todayStats!.subjectBreakdown.map(({ subject, minutes }) => (
-                  <div key={subject} style={{ alignItems: 'center', display: 'flex', gap: 8 }}>
-                    <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.8rem', flex: 1 }}>{subject}</span>
-                    <span style={{ color: 'var(--color-text-muted)', fontSize: '0.75rem', fontVariantNumeric: 'tabular-nums' }}>{minutes}m</span>
-                    <div style={{ background: 'var(--color-surface-hover)', borderRadius: 99, height: 4, width: 60, overflow: 'hidden' }}>
-                      <div style={{
-                        background: phaseColor, borderRadius: 99, height: '100%',
-                        width: `${Math.min(100, (minutes / (todayStats!.totalMinutes || 1)) * 100)}%`,
-                      }} />
-                    </div>
+            {/* Timer card */}
+            <Card className={cn('transition-colors duration-500', phaseCardClass(timer.phase))}>
+              <CardContent className="px-6 py-10 text-center">
+                <div className="mb-8 flex justify-center gap-2.5">
+                  {Array.from({ length: dotsInCycle }).map((_, i) => (
+                    <span
+                      key={i}
+                      className={cn(
+                        'size-2.5 rounded-full border-2 transition-all',
+                        phaseDotClass(timer.phase, i < completedInCycle),
+                      )}
+                    />
+                  ))}
+                </div>
+
+                <div
+                  className={cn(
+                    'mb-6 text-xs font-bold uppercase tracking-widest',
+                    phaseTextClass(timer.phase),
+                  )}
+                >
+                  {PHASE_LABELS[timer.phase]}
+                </div>
+
+                <div className="mb-8 flex justify-center">
+                  <TimerRing
+                    progress={timer.progress}
+                    phase={timer.phase}
+                    size={window.innerWidth < 480 ? 210 : 280}
+                    timeDisplay={timer.timeDisplay}
+                  />
+                </div>
+
+                <TimerControls
+                  isRunning={timer.isRunning}
+                  phase={timer.phase}
+                  onStart={timer.start}
+                  onPause={timer.pause}
+                  onSkip={timer.skip}
+                  onReset={timer.reset}
+                />
+
+                <p className="mt-5 text-[0.72rem] text-muted-foreground">
+                  <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 text-[0.65rem]">Space</kbd>
+                  {' '}play/pause · {' '}
+                  <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 text-[0.65rem]">F</kbd>
+                  {' '}focus mode
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* Subject / task / focus-mode row */}
+            <Card>
+              <CardContent className="flex flex-col gap-3 px-4 py-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                  <div className="flex flex-1 items-center gap-2">
+                    <BookOpenIcon size={16} className="shrink-0 text-muted-foreground" />
+                    <Select
+                      value={timer.subject ?? NONE_VALUE}
+                      onValueChange={(v) => timer.setTask(timer.taskId, v === NONE_VALUE ? null : v)}
+                    >
+                      <SelectTrigger className="w-full flex-1" aria-label="Select subject">
+                        <SelectValue placeholder="No subject" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={NONE_VALUE}>No subject</SelectItem>
+                        {settings.subjects.map((s) => (
+                          <SelectItem key={s.id} value={s.label}>{s.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
-                ))}
-              </div>
-            )}
+
+                  <motion.div whileTap={{ scale: 0.95 }}>
+                    <Button
+                      className="w-full gap-1.5 bg-linear-to-r from-primary to-[#8b5cf6] hover:opacity-90 sm:w-auto"
+                      onClick={() => setFocusMode(true)}
+                    >
+                      <CornersOutIcon size={16} />
+                      Focus Mode
+                    </Button>
+                  </motion.div>
+                </div>
+
+                {incompleteTasks.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <ListChecksIcon size={16} className="shrink-0 text-muted-foreground" />
+                    <Select
+                      value={timer.taskId ?? NONE_VALUE}
+                      onValueChange={(v) => {
+                        if (v === NONE_VALUE) { timer.setTask(null, timer.subject); return; }
+                        const task = incompleteTasks.find((t) => t._id === v);
+                        timer.setTask(v, task?.subject ?? null);
+                      }}
+                    >
+                      <SelectTrigger className="w-full flex-1" aria-label="Link to task">
+                        <SelectValue placeholder="No task linked" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={NONE_VALUE}>No task linked</SelectItem>
+                        {incompleteTasks.map((t: Task) => (
+                          <SelectItem key={t._id} value={t._id}>
+                            {t.subject ? `[${t.subject}] ` : ''}{t.title}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
 
-          {/* Session history */}
-          {focusSessions.length > 0 && (
-            <div className="card" style={{ overflow: 'hidden' }}>
-              <div style={{ borderBottom: '1px solid var(--color-border)', padding: '12px 14px' }}>
-                <h2 style={{ color: 'var(--color-text)', fontSize: '0.875rem', fontWeight: 600 }}>Session History</h2>
-              </div>
-              <div>
-                <AnimatePresence>
-                  {focusSessions.slice(0, 8).map((s: PomodoroSession, i) => (
-                    <motion.div key={s._id}
-                      initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: i * 0.04 }}>
-                      <SessionCard session={s} />
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
-              </div>
-            </div>
-          )}
+          {/* Right column */}
+          <div className="flex flex-col gap-4">
+            <SoundPlayer />
 
-          {focusSessions.length === 0 && !timer.isRunning && (
-            <div className="card" style={{ padding: '24px 16px', textAlign: 'center' }}>
-              <div style={{ fontSize: '1.6rem', marginBottom: 8 }}>🍅</div>
-              <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.85rem' }}>
-                Start your first focus session today!
-              </p>
-            </div>
-          )}
+            <Card>
+              <CardHeader className="px-4 pb-0">
+                <CardTitle className="text-sm font-semibold">Today&apos;s Sessions</CardTitle>
+              </CardHeader>
+              <CardContent className="px-4 pb-4 pt-3.5">
+                <div className="grid grid-cols-2 gap-2.5">
+                  <div className="rounded-xl bg-linear-to-br from-primary/12 via-card to-card border border-border px-3.5 py-3">
+                    <div className="mb-1.5 flex size-7 items-center justify-center rounded-lg bg-primary/15">
+                      <FlameIcon size={14} weight="duotone" className="text-primary" />
+                    </div>
+                    <div className="text-lg font-bold text-foreground">{todayStats?.tomatoCount ?? 0}</div>
+                    <div className="text-[0.7rem] text-muted-foreground">Sessions</div>
+                  </div>
+                  <div className="rounded-xl bg-linear-to-br from-orange-500/12 via-card to-card border border-border px-3.5 py-3">
+                    <div className="mb-1.5 flex size-7 items-center justify-center rounded-lg bg-orange-500/15">
+                      <ClockIcon size={14} weight="duotone" className="text-orange-500" />
+                    </div>
+                    <div className="text-lg font-bold text-foreground">{todayStats?.totalMinutes ?? 0} min</div>
+                    <div className="text-[0.7rem] text-muted-foreground">Focus Time</div>
+                  </div>
+                </div>
+
+                {(todayStats?.subjectBreakdown?.length ?? 0) > 0 && (
+                  <div className="mt-3.5 flex flex-col gap-2">
+                    {todayStats!.subjectBreakdown.map(({ subject, minutes }) => (
+                      <div key={subject} className="flex items-center gap-2">
+                        <span className="flex-1 truncate text-sm text-muted-foreground">{subject}</span>
+                        <span className="text-xs tabular-nums text-muted-foreground">{minutes}m</span>
+                        <Progress
+                          value={Math.min(100, (minutes / (todayStats!.totalMinutes || 1)) * 100)}
+                          className={cn('h-1 w-15', phaseProgressClass(timer.phase))}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {focusSessions.length > 0 && (
+              <Card className="overflow-hidden">
+                <CardHeader className="px-3.5 py-3">
+                  <CardTitle className="text-sm font-semibold">Session History</CardTitle>
+                </CardHeader>
+                <Separator />
+                <div>
+                  <AnimatePresence>
+                    {focusSessions.slice(0, 8).map((s: PomodoroSession, i) => (
+                      <motion.div
+                        key={s._id}
+                        initial={{ opacity: 0, x: -8 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: i * 0.04 }}
+                      >
+                        <SessionCard session={s} />
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                </div>
+              </Card>
+            )}
+
+            {focusSessions.length === 0 && !timer.isRunning && (
+              <Card>
+                <CardContent className="flex flex-col items-center gap-2.5 px-4 py-7 text-center">
+                  <div className="flex size-11 items-center justify-center rounded-xl border border-border bg-muted/60">
+                    <TimerIcon size={20} weight="duotone" className="text-muted-foreground/50" />
+                  </div>
+                  <p className="text-sm font-semibold text-foreground">No sessions yet</p>
+                  <p className="text-[0.72rem] text-muted-foreground">
+                    Start your first focus session today!
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+          </div>
         </div>
-      </div>
+      </PageShell>
     </>
   );
 }

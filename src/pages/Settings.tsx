@@ -14,6 +14,24 @@ import { usePlan } from "../hooks/usePlan";
 import { PLANS } from "../config/plans.config";
 import { APP_CONFIG } from "../config/app.config";
 import type { UserSettings } from "../types";
+import PageShell from "@/components/shared/PageShell";
+import PageHeader from "@/components/shared/PageHeader";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 
 type Tab = "profile" | "timer" | "appearance" | "notifications" | "goals" | "subscription";
 
@@ -27,34 +45,57 @@ const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
 ];
 
 const ACCENT_COLORS = [
-  { label: "Indigo", value: "#6366f1" },
-  { label: "Violet", value: "#8b5cf6" },
-  { label: "Cyan", value: "#06b6d4" },
-  { label: "Emerald", value: "#10b981" },
-  { label: "Amber", value: "#f59e0b" },
-  { label: "Rose", value: "#f43f5e" },
+  { label: "Indigo", value: "#6366f1", className: "bg-indigo-500" },
+  { label: "Violet", value: "#8b5cf6", className: "bg-violet-500" },
+  { label: "Cyan", value: "#06b6d4", className: "bg-cyan-500" },
+  { label: "Emerald", value: "#10b981", className: "bg-emerald-500" },
+  { label: "Amber", value: "#f59e0b", className: "bg-amber-500" },
+  { label: "Rose", value: "#f43f5e", className: "bg-rose-500" },
 ];
+
+const THEME_PREVIEW: Record<string, { card: string; label: string; dots: [string, string, string] }> = {
+  default: { card: "bg-zinc-950 border-zinc-800", label: "text-zinc-50", dots: ["bg-indigo-500", "bg-green-500", "bg-amber-500"] },
+  amoled: { card: "bg-black border-zinc-800", label: "text-white", dots: ["bg-indigo-500", "bg-green-500", "bg-amber-500"] },
+  ocean: { card: "bg-slate-900 border-slate-700", label: "text-sky-50", dots: ["bg-cyan-500", "bg-green-500", "bg-amber-500"] },
+  purple: { card: "bg-purple-950 border-purple-800", label: "text-purple-50", dots: ["bg-purple-500", "bg-green-500", "bg-amber-500"] },
+  green: { card: "bg-green-950 border-green-900", label: "text-green-50", dots: ["bg-green-500", "bg-emerald-400", "bg-amber-500"] },
+  dracula: { card: "bg-[#282a36] border-[#44475a]", label: "text-[#f8f8f2]", dots: ["bg-pink-500", "bg-green-500", "bg-amber-500"] },
+  light: { card: "bg-white border-zinc-200", label: "text-zinc-900", dots: ["bg-indigo-500", "bg-green-500", "bg-amber-500"] },
+};
+
+const SUBJECT_COLOR_BG: Record<string, string> = {
+  "#6366f1": "bg-indigo-500",
+  "#8b5cf6": "bg-violet-500",
+  "#06b6d4": "bg-cyan-500",
+  "#10b981": "bg-emerald-500",
+  "#f59e0b": "bg-amber-500",
+  "#f43f5e": "bg-rose-500",
+  "#22c55e": "bg-green-500",
+  "#ef4444": "bg-red-500",
+};
+
+function subjectColorClass(color: string) {
+  return SUBJECT_COLOR_BG[color.toLowerCase()] ?? "bg-primary";
+}
 
 function SaveRow({ onSave, isPending, saved }: { onSave: () => void; isPending: boolean; saved: boolean }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 4 }}>
-      <motion.button
-        whileTap={{ scale: 0.97 }}
-        onClick={onSave}
-        disabled={isPending}
-        className="btn btn-primary"
-        style={{ minHeight: "auto", padding: "8px 20px", fontSize: "0.875rem" }}>
-        {isPending ? "Saving…" : "Save Changes"}
-      </motion.button>
+    <div className="mt-1 flex items-center gap-3">
+      <motion.div whileTap={{ scale: 0.97 }} className="inline-flex">
+        <Button onClick={onSave} disabled={isPending} size="sm">
+          {isPending ? "Saving…" : "Save Changes"}
+        </Button>
+      </motion.div>
       <AnimatePresence>
         {saved && (
           <motion.div
             initial={{ opacity: 0, x: -6 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0 }}
-            style={{ alignItems: "center", display: "flex", gap: 5 }}>
-            <CheckCircleIcon size={15} color="var(--color-success)" />
-            <span style={{ color: "var(--color-success)", fontSize: "0.8rem" }}>Saved</span>
+            className="flex items-center gap-1.5"
+          >
+            <CheckCircleIcon size={15} className="text-green-500" />
+            <span className="text-sm text-green-500">Saved</span>
           </motion.div>
         )}
       </AnimatePresence>
@@ -64,19 +105,68 @@ function SaveRow({ onSave, isPending, saved }: { onSave: () => void; isPending: 
 
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-      <label style={{ color: "var(--color-text-secondary)", fontSize: "0.8rem", fontWeight: 500 }}>{label}</label>
+    <div className="flex flex-col gap-1.5">
+      <Label className="text-muted-foreground">{label}</Label>
       {children}
-      {hint && <p style={{ color: "var(--color-text-muted)", fontSize: "0.73rem" }}>{hint}</p>}
+      {hint && <p className="text-[0.73rem] text-muted-foreground">{hint}</p>}
     </div>
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
   return (
-    <div className="card" style={{ padding: "18px 20px", display: "flex", flexDirection: "column", gap: 16 }}>
-      <h2 style={{ color: "var(--color-text)", fontSize: "0.9rem", fontWeight: 600 }}>{title}</h2>
-      {children}
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-sm">{title}</CardTitle>
+        {description && <CardDescription>{description}</CardDescription>}
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">{children}</CardContent>
+    </Card>
+  );
+}
+
+function ToggleRow({
+  label,
+  checked,
+  onCheckedChange,
+}: {
+  label: string;
+  checked: boolean;
+  onCheckedChange: (checked: boolean) => void;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <span className="text-sm text-muted-foreground">{label}</span>
+      <Switch checked={checked} onCheckedChange={onCheckedChange} />
+    </div>
+  );
+}
+
+function OptionButtons<T extends string>({
+  value,
+  options,
+  onChange,
+  formatLabel,
+}: {
+  value: T;
+  options: T[];
+  onChange: (value: T) => void;
+  formatLabel?: (value: T) => string;
+}) {
+  return (
+    <div className="flex gap-2">
+      {options.map((option) => (
+        <Button
+          key={option}
+          type="button"
+          variant={value === option ? "default" : "outline"}
+          className="flex-1"
+          size="sm"
+          onClick={() => onChange(option)}
+        >
+          {formatLabel ? formatLabel(option) : option}
+        </Button>
+      ))}
     </div>
   );
 }
@@ -203,847 +293,605 @@ export default function Settings() {
         <meta name="robots" content="noindex" />
       </Helmet>
 
-      <div
-        style={{ display: "grid", gap: 20, gridTemplateColumns: "180px 1fr", maxWidth: 740, alignItems: "start" }}
-        className="settings-grid">
-        {/* Tab sidebar */}
-        <nav style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-          {TABS.map(({ id, label, icon: Icon }) => (
-            <button
-              key={id}
-              onClick={() => setTab(id)}
-              style={{
-                alignItems: "center",
-                background: tab === id ? "color-mix(in srgb, var(--color-accent) 12%, transparent)" : "transparent",
-                border: "none",
-                borderRadius: "var(--radius-md)",
-                color: tab === id ? "var(--color-accent)" : "var(--color-text-secondary)",
-                cursor: "pointer",
-                display: "flex",
-                fontWeight: tab === id ? 600 : 400,
-                gap: 8,
-                minHeight: "auto",
-                padding: "9px 12px",
-                fontSize: "0.875rem",
-                textAlign: "left",
-                transition: "all 0.12s",
-                width: "100%",
-              }}>
-              <Icon size={16} weight={tab === id ? "fill" : "regular"} />
-              {label}
-            </button>
-          ))}
-        </nav>
+      <PageShell narrow className="max-w-[740px]">
+        <PageHeader title="Settings" />
 
-        {/* Content */}
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={tab}
-            initial={{ opacity: 0, x: 8 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.12 }}
-            style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <Tabs
+          value={tab}
+          onValueChange={(v) => setTab(v as Tab)}
+          orientation="vertical"
+          className="flex flex-col gap-5 sm:flex-row sm:items-start"
+        >
+          <TabsList variant="line" className="h-auto w-full shrink-0 flex-col items-stretch sm:w-[180px]">
+            {TABS.map(({ id, label, icon: Icon }) => (
+              <TabsTrigger key={id} value={id} className="justify-start gap-2 px-3 py-2">
+                <Icon size={16} weight={tab === id ? "fill" : "regular"} />
+                {label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+
+          <div className="min-w-0 flex-1">
             {/* ─── Profile ─── */}
-            {tab === "profile" && (
-              <>
-              <Section title="Profile">
-                <Field label="Display Name">
-                  <input
-                    className="input"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Your name"
-                  />
-                </Field>
-                <Field label="Email">
-                  <input
-                    className="input"
-                    value={user?.email ?? ""}
-                    disabled
-                    style={{ opacity: 0.5, cursor: "not-allowed" }}
-                  />
-                </Field>
-                <Field label="Timezone">
-                  <input
-                    className="input"
-                    value={timezone}
-                    onChange={(e) => setTimezone(e.target.value)}
-                    placeholder="Asia/Kolkata"
-                  />
-                </Field>
-                <SaveRow onSave={() => doSave({}, true)} isPending={saving} saved={savedTab === "profile"} />
-              </Section>
+            <TabsContent value="profile" className="mt-0 space-y-4">
+              <motion.div
+                initial={{ opacity: 0, x: 8 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.12 }}
+                className="space-y-4"
+              >
+                  <Section title="Profile">
+                    <Field label="Display Name">
+                      <Input
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder="Your name"
+                      />
+                    </Field>
+                    <Field label="Email">
+                      <Input value={user?.email ?? ""} disabled className="opacity-50" />
+                    </Field>
+                    <Field label="Timezone">
+                      <Input
+                        value={timezone}
+                        onChange={(e) => setTimezone(e.target.value)}
+                        placeholder="Asia/Kolkata"
+                      />
+                    </Field>
+                    <SaveRow onSave={() => doSave({}, true)} isPending={saving} saved={savedTab === "profile"} />
+                  </Section>
 
-              {/* Export Data */}
-              {isPro ? (
-                <Section title="Export Data">
-                  <p style={{ color: "var(--color-text-muted)", fontSize: "0.8rem" }}>
-                    Download your data as CSV. Choose a date range and export by type.
-                  </p>
-                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-                    <Field label="From">
-                      <input
-                        type="date"
-                        value={exportFrom}
-                        max={exportTo}
-                        onChange={(e) => setExportFrom(e.target.value)}
-                        className="input"
-                        style={{ fontSize: "0.82rem" }}
-                      />
-                    </Field>
-                    <Field label="To">
-                      <input
-                        type="date"
-                        value={exportTo}
-                        min={exportFrom}
-                        max={new Date().toISOString().slice(0, 10)}
-                        onChange={(e) => setExportTo(e.target.value)}
-                        className="input"
-                        style={{ fontSize: "0.82rem" }}
-                      />
-                    </Field>
-                  </div>
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    {(["habits", "sessions", "tasks"] as const).map((type) => (
-                      <motion.button
-                        key={type}
-                        whileTap={{ scale: 0.97 }}
-                        onClick={() => handleExport(type)}
-                        disabled={exporting}
-                        className="btn"
-                        style={{
-                          background: "var(--color-surface-hover)",
-                          border: "1px solid var(--color-border)",
-                          fontSize: "0.82rem",
-                          minHeight: "auto",
-                          padding: "7px 14px",
-                        }}
-                      >
-                        {exporting ? "Exporting…" : `Export ${type.charAt(0).toUpperCase() + type.slice(1)}`}
-                      </motion.button>
-                    ))}
-                  </div>
-                </Section>
-              ) : (
-                <div className="card" style={{ padding: "16px 18px" }}>
-                  <div style={{ alignItems: "center", display: "flex", gap: 10 }}>
-                    <CrownIcon size={16} weight="fill" color="var(--color-warning)" />
-                    <span style={{ color: "var(--color-text)", fontSize: "0.85rem", fontWeight: 600 }}>
-                      Export Data
-                    </span>
-                  </div>
-                  <p style={{ color: "var(--color-text-muted)", fontSize: "0.78rem", marginTop: 6 }}>
-                    Export your habits, sessions, and tasks as CSV. Available on Pro.
-                  </p>
-                  <motion.button
-                    whileTap={{ scale: 0.97 }}
-                    onClick={() => navigate("/upgrade")}
-                    className="btn btn-primary"
-                    style={{ fontSize: "0.82rem", marginTop: 10, minHeight: "auto", padding: "7px 14px" }}
-                  >
-                    Upgrade to Pro
-                  </motion.button>
-                </div>
-              )}
-              </>
-            )}
+                  {isPro ? (
+                    <Section
+                      title="Export Data"
+                      description="Download your data as CSV. Choose a date range and export by type."
+                    >
+                      <div className="flex flex-wrap items-end gap-2.5">
+                        <Field label="From">
+                          <Input
+                            type="date"
+                            value={exportFrom}
+                            max={exportTo}
+                            onChange={(e) => setExportFrom(e.target.value)}
+                            className="text-[0.82rem]"
+                          />
+                        </Field>
+                        <Field label="To">
+                          <Input
+                            type="date"
+                            value={exportTo}
+                            min={exportFrom}
+                            max={new Date().toISOString().slice(0, 10)}
+                            onChange={(e) => setExportTo(e.target.value)}
+                            className="text-[0.82rem]"
+                          />
+                        </Field>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {(["habits", "sessions", "tasks"] as const).map((type) => (
+                          <motion.div key={type} whileTap={{ scale: 0.97 }} className="inline-flex">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleExport(type)}
+                              disabled={exporting}
+                            >
+                              {exporting ? "Exporting…" : `Export ${type.charAt(0).toUpperCase() + type.slice(1)}`}
+                            </Button>
+                          </motion.div>
+                        ))}
+                      </div>
+                    </Section>
+                  ) : (
+                    <Card>
+                      <CardContent className="pt-(--card-spacing)">
+                        <div className="flex items-center gap-2.5">
+                          <CrownIcon size={16} weight="fill" className="text-amber-500" />
+                          <span className="text-sm font-semibold">Export Data</span>
+                        </div>
+                        <p className="mt-1.5 text-xs text-muted-foreground">
+                          Export your habits, sessions, and tasks as CSV. Available on Pro.
+                        </p>
+                        <motion.div whileTap={{ scale: 0.97 }} className="mt-2.5 inline-flex">
+                          <Button size="sm" onClick={() => navigate("/upgrade")}>
+                            Upgrade to Pro
+                          </Button>
+                        </motion.div>
+                      </CardContent>
+                    </Card>
+                  )}
+              </motion.div>
+            </TabsContent>
 
             {/* ─── Timer ─── */}
-            {tab === "timer" && (
-              <Section title="Pomodoro Timer">
-                {[
-                  { label: "Focus duration (minutes)", value: focusMin, set: setFocusMin, min: 5, max: 90 },
-                  { label: "Short break (minutes)", value: shortMin, set: setShortMin, min: 1, max: 30 },
-                  { label: "Long break (minutes)", value: longMin, set: setLongMin, min: 5, max: 60 },
-                  { label: "Sessions until long break", value: sessions, set: setSessions, min: 1, max: 10 },
-                ].map(({ label, value, set, min, max }) => (
-                  <Field key={label} label={label}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                      <input
-                        type="range"
-                        min={min}
-                        max={max}
-                        value={value}
-                        onChange={(e) => set(Number(e.target.value))}
-                        style={{ flex: 1, accentColor: "var(--color-accent)" }}
-                      />
-                      <span
-                        style={{
-                          color: "var(--color-text)",
-                          fontWeight: 600,
-                          fontSize: "0.9rem",
-                          minWidth: 28,
-                          textAlign: "right",
-                          fontVariantNumeric: "tabular-nums",
-                        }}>
-                        {value}
-                      </span>
-                    </div>
-                  </Field>
-                ))}
-
-                {[
-                  { label: "Auto-start breaks", value: autoBreaks, set: setAutoBreaks },
-                  { label: "Auto-start next focus", value: autoFocus, set: setAutoFocus },
-                ].map(({ label, value, set }) => (
-                  <div
-                    key={label}
-                    style={{ alignItems: "center", display: "flex", gap: 12, justifyContent: "space-between" }}>
-                    <span style={{ color: "var(--color-text-secondary)", fontSize: "0.875rem" }}>{label}</span>
-                    <button
-                      onClick={() => set(!value)}
-                      style={{
-                        background: value ? "var(--color-accent)" : "var(--color-surface-hover)",
-                        border: `2px solid ${value ? "var(--color-accent)" : "var(--color-border)"}`,
-                        borderRadius: "var(--radius-full)",
-                        cursor: "pointer",
-                        height: 24,
-                        width: 44,
-                        minHeight: "auto",
-                        minWidth: "auto",
-                        position: "relative",
-                        transition: "all 0.2s",
-                      }}>
-                      <span
-                        style={{
-                          background: "#fff",
-                          borderRadius: "50%",
-                          height: 16,
-                          width: 16,
-                          position: "absolute",
-                          top: 2,
-                          left: value ? 22 : 2,
-                          transition: "left 0.2s",
-                        }}
-                      />
-                    </button>
-                  </div>
-                ))}
-
-                <Field label="Clock format">
-                  <div style={{ display: "flex", gap: 8 }}>
-                    {(["12h", "24h"] as const).map((f) => (
-                      <button
-                        key={f}
-                        onClick={() => setClockFormat(f)}
-                        style={{
-                          background: clockFormat === f ? "var(--color-accent)" : "var(--color-surface-hover)",
-                          border: `1px solid ${clockFormat === f ? "var(--color-accent)" : "var(--color-border)"}`,
-                          borderRadius: "var(--radius-md)",
-                          color: clockFormat === f ? "#fff" : "var(--color-text-secondary)",
-                          cursor: "pointer",
-                          flex: 1,
-                          fontSize: "0.85rem",
-                          fontWeight: 500,
-                          minHeight: "auto",
-                          padding: "7px 0",
-                        }}>
-                        {f}
-                      </button>
+            <TabsContent value="timer" className="mt-0">
+              <motion.div
+                initial={{ opacity: 0, x: 8 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.12 }}
+              >
+                  <Section title="Pomodoro Timer">
+                    {[
+                      { label: "Focus duration (minutes)", value: focusMin, set: setFocusMin, min: 5, max: 90 },
+                      { label: "Short break (minutes)", value: shortMin, set: setShortMin, min: 1, max: 30 },
+                      { label: "Long break (minutes)", value: longMin, set: setLongMin, min: 5, max: 60 },
+                      { label: "Sessions until long break", value: sessions, set: setSessions, min: 1, max: 10 },
+                    ].map(({ label, value, set, min, max }) => (
+                      <Field key={label} label={label}>
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="range"
+                            min={min}
+                            max={max}
+                            value={value}
+                            onChange={(e) => set(Number(e.target.value))}
+                            className="h-2 flex-1 cursor-pointer accent-primary"
+                          />
+                          <span className="min-w-7 text-right text-sm font-semibold tabular-nums text-foreground">
+                            {value}
+                          </span>
+                        </div>
+                      </Field>
                     ))}
-                  </div>
-                </Field>
 
-                <SaveRow
-                  onSave={() =>
-                    doSave({
-                      pomodoroFocusMin: focusMin,
-                      shortBreakMin: shortMin,
-                      longBreakMin: longMin,
-                      sessionsUntilLongBreak: sessions,
-                      autoStartBreaks: autoBreaks,
-                      autoStartNextFocus: autoFocus,
-                      clockFormat,
-                    })
-                  }
-                  isPending={saving}
-                  saved={savedTab === "timer"}
-                />
-              </Section>
-            )}
+                    <ToggleRow label="Auto-start breaks" checked={autoBreaks} onCheckedChange={setAutoBreaks} />
+                    <ToggleRow label="Auto-start next focus" checked={autoFocus} onCheckedChange={setAutoFocus} />
+
+                    <Field label="Clock format">
+                      <OptionButtons value={clockFormat} options={["12h", "24h"]} onChange={setClockFormat} />
+                    </Field>
+
+                    <SaveRow
+                      onSave={() =>
+                        doSave({
+                          pomodoroFocusMin: focusMin,
+                          shortBreakMin: shortMin,
+                          longBreakMin: longMin,
+                          sessionsUntilLongBreak: sessions,
+                          autoStartBreaks: autoBreaks,
+                          autoStartNextFocus: autoFocus,
+                          clockFormat,
+                        })
+                      }
+                      isPending={saving}
+                      saved={savedTab === "timer"}
+                    />
+                  </Section>
+              </motion.div>
+            </TabsContent>
 
             {/* ─── Appearance ─── */}
-            {tab === "appearance" && (
-              <Section title="Appearance">
-                <Field label="Theme">
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
-                    {THEMES.map((t) => {
-                      const isLocked = t.isPro && !isPro;
-                      const isSelected = theme === t.id;
-                      return (
-                        <button
-                          key={t.id}
-                          onClick={() => {
-                            if (isLocked) { navigate("/upgrade"); return; }
-                            setTheme(t.id);
-                          }}
-                          title={t.label}
-                          style={{
-                            alignItems: "center",
-                            background: t.vars["--color-surface"],
-                            border: `2px solid ${isSelected ? "var(--color-accent)" : t.vars["--color-border"]}`,
-                            borderRadius: "var(--radius-md)",
-                            cursor: "pointer",
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: 6,
-                            minHeight: "auto",
-                            minWidth: "auto",
-                            opacity: isLocked ? 0.65 : 1,
-                            padding: "10px 8px",
-                            position: "relative",
-                            transition: "all 0.15s",
-                          }}
-                        >
-                          {/* Preview dots */}
-                          <div style={{ display: "flex", gap: 4 }}>
-                            {[t.vars["--color-accent"], t.vars["--color-success"], t.vars["--color-warning"]].map((c, i) => (
-                              <div key={i} style={{ background: c, borderRadius: "50%", height: 8, width: 8 }} />
-                            ))}
-                          </div>
-                          <span style={{ color: t.vars["--color-text"], fontSize: "0.7rem", fontWeight: isSelected ? 700 : 400 }}>
-                            {t.label}
-                          </span>
-                          {isLocked && (
-                            <span style={{
-                              background: "rgba(251,191,36,0.9)", borderRadius: 3,
-                              color: "#000", fontSize: "0.6rem", fontWeight: 700,
-                              padding: "1px 4px", position: "absolute", right: 4, top: 4,
-                            }}>PRO</span>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </Field>
+            <TabsContent value="appearance" className="mt-0">
+              <motion.div
+                initial={{ opacity: 0, x: 8 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.12 }}
+              >
+                  <Section title="Appearance">
+                    <Field label="Theme">
+                      <div className="grid grid-cols-3 gap-2">
+                        {THEMES.map((t) => {
+                          const isLocked = t.isPro && !isPro;
+                          const isSelected = theme === t.id;
+                          const preview = THEME_PREVIEW[t.id] ?? THEME_PREVIEW.default;
+                          return (
+                            <button
+                              key={t.id}
+                              type="button"
+                              onClick={() => {
+                                if (isLocked) { navigate("/upgrade"); return; }
+                                setTheme(t.id);
+                              }}
+                              title={t.label}
+                              className={cn(
+                                "relative flex cursor-pointer flex-col items-center gap-1.5 rounded-lg border-2 p-2.5 transition-all",
+                                preview.card,
+                                isSelected ? "border-primary ring-1 ring-primary/30" : "border-transparent opacity-90 hover:opacity-100",
+                                isLocked && "opacity-65",
+                              )}
+                            >
+                              <div className="flex gap-1">
+                                {preview.dots.map((dotClass, i) => (
+                                  <div key={i} className={cn("size-2 rounded-full", dotClass)} />
+                                ))}
+                              </div>
+                              <span className={cn("text-[0.7rem]", preview.label, isSelected && "font-bold")}>
+                                {t.label}
+                              </span>
+                              {isLocked && (
+                                <Badge className="absolute right-1 top-1 bg-amber-400 px-1 py-0 text-[0.6rem] text-black hover:bg-amber-400">
+                                  PRO
+                                </Badge>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </Field>
 
-                <Field label="Accent color">
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center" }}>
-                    {ACCENT_COLORS.map(({ label, value }) => (
-                      <button
-                        key={value}
-                        title={label}
-                        onClick={() => setAccentColor(value)}
-                        style={{
-                          background: value,
-                          border: `3px solid ${accentColor === value ? "#fff" : "transparent"}`,
-                          borderRadius: "50%",
-                          cursor: "pointer",
-                          height: 30,
-                          width: 30,
-                          minHeight: "auto",
-                          minWidth: "auto",
-                          outline: accentColor === value ? `2px solid ${value}` : "none",
-                          outlineOffset: 2,
-                          transition: "transform 0.12s",
-                          transform: accentColor === value ? "scale(1.15)" : "scale(1)",
-                        }}
-                      />
-                    ))}
-                    <input
-                      type="color"
-                      value={accentColor}
-                      onChange={(e) => setAccentColor(e.target.value)}
-                      title="Custom color"
-                      style={{
-                        background: "none",
-                        border: "1px solid var(--color-border)",
-                        borderRadius: 6,
-                        cursor: "pointer",
-                        height: 30,
-                        padding: 2,
-                        width: 36,
-                      }}
+                    <Field label="Accent color">
+                      <div className="flex flex-wrap items-center gap-2.5">
+                        {ACCENT_COLORS.map(({ label, value, className }) => (
+                          <button
+                            key={value}
+                            type="button"
+                            title={label}
+                            onClick={() => setAccentColor(value)}
+                            className={cn(
+                              "size-7 shrink-0 cursor-pointer rounded-full transition-transform",
+                              className,
+                              accentColor === value
+                                ? "scale-110 ring-2 ring-offset-2 ring-offset-background ring-white"
+                                : "hover:scale-105",
+                            )}
+                          />
+                        ))}
+                        <Input
+                          type="color"
+                          value={accentColor}
+                          onChange={(e) => setAccentColor(e.target.value)}
+                          title="Custom color"
+                          className="h-8 w-9 cursor-pointer p-0.5"
+                        />
+                      </div>
+                    </Field>
+
+                    <Field label="Font size">
+                      <Select value={fontSize} onValueChange={(v) => setFontSize(v as "sm" | "md" | "lg")}>
+                        <SelectTrigger className="w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="sm">Small</SelectItem>
+                          <SelectItem value="md">Medium</SelectItem>
+                          <SelectItem value="lg">Large</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </Field>
+
+                    <ToggleRow
+                      label="Collapse sidebar by default"
+                      checked={sidebarCollapsed}
+                      onCheckedChange={setSidebarCollapsed}
                     />
-                  </div>
-                </Field>
 
-                <Field label="Font size">
-                  <div style={{ display: "flex", gap: 8 }}>
-                    {(["sm", "md", "lg"] as const).map((f) => (
-                      <button
-                        key={f}
-                        onClick={() => setFontSize(f)}
-                        style={{
-                          background: fontSize === f ? "var(--color-accent)" : "var(--color-surface-hover)",
-                          border: `1px solid ${fontSize === f ? "var(--color-accent)" : "var(--color-border)"}`,
-                          borderRadius: "var(--radius-md)",
-                          color: fontSize === f ? "#fff" : "var(--color-text-secondary)",
-                          cursor: "pointer",
-                          flex: 1,
-                          fontSize: { sm: "0.8rem", md: "0.875rem", lg: "1rem" }[f],
-                          fontWeight: 500,
-                          minHeight: "auto",
-                          padding: "7px 0",
-                        }}>
-                        {f.toUpperCase()}
-                      </button>
-                    ))}
-                  </div>
-                </Field>
-
-                <div style={{ alignItems: "center", display: "flex", gap: 12, justifyContent: "space-between" }}>
-                  <span style={{ color: "var(--color-text-secondary)", fontSize: "0.875rem" }}>
-                    Collapse sidebar by default
-                  </span>
-                  <button
-                    onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-                    style={{
-                      background: sidebarCollapsed ? "var(--color-accent)" : "var(--color-surface-hover)",
-                      border: `2px solid ${sidebarCollapsed ? "var(--color-accent)" : "var(--color-border)"}`,
-                      borderRadius: "var(--radius-full)",
-                      cursor: "pointer",
-                      height: 24,
-                      width: 44,
-                      minHeight: "auto",
-                      minWidth: "auto",
-                      position: "relative",
-                      transition: "all 0.2s",
-                    }}>
-                    <span
-                      style={{
-                        background: "#fff",
-                        borderRadius: "50%",
-                        height: 16,
-                        width: 16,
-                        position: "absolute",
-                        top: 2,
-                        left: sidebarCollapsed ? 22 : 2,
-                        transition: "left 0.2s",
-                      }}
+                    <SaveRow
+                      onSave={() => doSave({ accentColor, fontSize, sidebarCollapsed, theme })}
+                      isPending={saving}
+                      saved={savedTab === "appearance"}
                     />
-                  </button>
-                </div>
-
-                <SaveRow
-                  onSave={() => doSave({ accentColor, fontSize, sidebarCollapsed, theme })}
-                  isPending={saving}
-                  saved={savedTab === "appearance"}
-                />
-              </Section>
-            )}
+                  </Section>
+              </motion.div>
+            </TabsContent>
 
             {/* ─── Notifications ─── */}
-            {tab === "notifications" && (
-              <>
-                <Section title="Browser Notifications">
-                  {[
-                    {
-                      label: "Enable browser notifications",
-                      value: notifs,
-                      set: (v: boolean) => {
+            <TabsContent value="notifications" className="mt-0 space-y-4">
+              <motion.div
+                initial={{ opacity: 0, x: 8 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.12 }}
+                className="space-y-4"
+              >
+                  <Section title="Browser Notifications">
+                    <ToggleRow
+                      label="Enable browser notifications"
+                      checked={notifs}
+                      onCheckedChange={(v) => {
                         setNotifs(v);
                         if (v && typeof Notification !== "undefined" && Notification.permission === "default") {
                           Notification.requestPermission();
                         }
-                      },
-                    },
-                    { label: "Weekly productivity report", value: weeklyReport, set: setWeeklyReport },
-                  ].map(({ label, value, set }) => (
-                    <div
-                      key={label}
-                      style={{ alignItems: "center", display: "flex", gap: 12, justifyContent: "space-between" }}>
-                      <span style={{ color: "var(--color-text-secondary)", fontSize: "0.875rem" }}>{label}</span>
-                      <button
-                        onClick={() => set(!value)}
-                        style={{
-                          background: value ? "var(--color-accent)" : "var(--color-surface-hover)",
-                          border: `2px solid ${value ? "var(--color-accent)" : "var(--color-border)"}`,
-                          borderRadius: "var(--radius-full)",
-                          cursor: "pointer",
-                          height: 24,
-                          width: 44,
-                          minHeight: "auto",
-                          minWidth: "auto",
-                          position: "relative",
-                          transition: "all 0.2s",
-                        }}>
-                        <span
-                          style={{
-                            background: "#fff",
-                            borderRadius: "50%",
-                            height: 16,
-                            width: 16,
-                            position: "absolute",
-                            top: 2,
-                            left: value ? 22 : 2,
-                            transition: "left 0.2s",
-                          }}
-                        />
-                      </button>
-                    </div>
-                  ))}
-
-                  <Field label="Daily reminder time">
-                    <input
-                      type="time"
-                      value={reminderTime}
-                      onChange={(e) => setReminderTime(e.target.value)}
-                      className="input"
-                      style={{ width: "auto", maxWidth: 140 }}
-                    />
-                  </Field>
-
-                  <SaveRow
-                    onSave={() =>
-                      doSave({
-                        notificationsEnabled: notifs,
-                        weeklyReportEnabled: weeklyReport,
-                        dailyReminderTime: reminderTime,
-                      })
-                    }
-                    isPending={saving}
-                    saved={savedTab === "notifications"}
-                  />
-                </Section>
-
-                {/* AI Smart Reminder — Pro only */}
-                <div className="card" style={{ padding: "18px 20px" }}>
-                  <div style={{ alignItems: "center", display: "flex", gap: 8, marginBottom: 8 }}>
-                    <h2 style={{ color: "var(--color-text)", fontSize: "0.9rem", fontWeight: 600 }}>Smart Reminder</h2>
-                    {!isPro && (
-                      <span
-                        style={{
-                          alignItems: "center",
-                          background: "rgba(251,191,36,0.15)",
-                          borderRadius: 4,
-                          color: "#fbbf24",
-                          display: "inline-flex",
-                          fontSize: "0.65rem",
-                          fontWeight: 700,
-                          padding: "2px 6px",
-                        }}>
-                        PRO
-                      </span>
-                    )}
-                  </div>
-                  <p style={{ color: "var(--color-text-muted)", fontSize: "0.8rem", marginBottom: 12 }}>
-                    AI-generated reminder based on your actual study patterns and peak productivity hours.
-                  </p>
-
-                  {isPro ? (
-                    <>
-                      {smartReminder && (
-                        <div
-                          style={{
-                            background: "color-mix(in srgb, var(--color-accent) 8%, var(--color-surface))",
-                            border: "1px solid color-mix(in srgb, var(--color-accent) 25%, transparent)",
-                            borderRadius: "var(--radius-md)",
-                            marginBottom: 12,
-                            padding: "10px 14px",
-                          }}>
-                          <p style={{ color: "var(--color-text-secondary)", fontSize: "0.85rem", fontStyle: "italic" }}>
-                            "{smartReminder}"
-                          </p>
-                        </div>
-                      )}
-                      <button
-                        disabled={reminderLoading}
-                        onClick={async () => {
-                          setReminderLoading(true);
-                          try {
-                            const r = await aiApi.smartReminder();
-                            setSmartReminder(r.data.data.reminder);
-                          } finally {
-                            setReminderLoading(false);
-                          }
-                        }}
-                        style={{
-                          background: "var(--color-surface-hover)",
-                          border: "1px solid var(--color-border)",
-                          borderRadius: "var(--radius-md)",
-                          color: "var(--color-text-secondary)",
-                          cursor: "pointer",
-                          fontSize: "0.82rem",
-                          padding: "7px 14px",
-                          opacity: reminderLoading ? 0.6 : 1,
-                        }}>
-                        {reminderLoading
-                          ? "Generating…"
-                          : smartReminder
-                            ? "↻ Refresh reminder"
-                            : "✦ Preview smart reminder"}
-                      </button>
-                    </>
-                  ) : (
-                    <button
-                      onClick={() => navigate("/upgrade")}
-                      style={{
-                        background: "var(--color-surface-hover)",
-                        border: "1px solid var(--color-border)",
-                        borderRadius: "var(--radius-md)",
-                        color: "var(--color-text-muted)",
-                        cursor: "pointer",
-                        fontSize: "0.8rem",
-                        padding: "7px 14px",
-                      }}>
-                      Upgrade to Pro to unlock
-                    </button>
-                  )}
-                </div>
-              </>
-            )}
-
-            {/* ─── Goals ─── */}
-            {tab === "goals" && (
-              <>
-                <Section title="Daily Goals">
-                  {[
-                    { label: "Daily focus goal (hours)", value: focusGoal, set: setFocusGoal, min: 1, max: 12 },
-                    { label: "Daily habit goal (count)", value: habitGoal, set: setHabitGoal, min: 1, max: 20 },
-                  ].map(({ label, value, set, min, max }) => (
-                    <Field key={label} label={label}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                        <input
-                          type="range"
-                          min={min}
-                          max={max}
-                          value={value}
-                          onChange={(e) => set(Number(e.target.value))}
-                          style={{ flex: 1, accentColor: "var(--color-accent)" }}
-                        />
-                        <span
-                          style={{
-                            color: "var(--color-text)",
-                            fontWeight: 600,
-                            fontSize: "0.9rem",
-                            minWidth: 24,
-                            textAlign: "right",
-                          }}>
-                          {value}
-                        </span>
-                      </div>
-                    </Field>
-                  ))}
-                  <SaveRow
-                    onSave={() => doSave({ dailyGoalHours: focusGoal, dailyHabitGoal: habitGoal, subjects })}
-                    isPending={saving}
-                    saved={savedTab === "goals"}
-                  />
-                </Section>
-
-                <Section title="Learning Subjects">
-                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                    {subjects.map(({ id, label, color }) => (
-                      <div key={id} style={{ alignItems: "center", display: "flex", gap: 10, padding: "6px 0" }}>
-                        <div style={{ background: color, borderRadius: "50%", flexShrink: 0, height: 10, width: 10 }} />
-                        <span style={{ color: "var(--color-text)", fontSize: "0.875rem", flex: 1 }}>{label}</span>
-                        <button
-                          onClick={() => handleRemoveSubject(id)}
-                          style={{
-                            background: "none",
-                            border: "none",
-                            color: "var(--color-text-muted)",
-                            cursor: "pointer",
-                            padding: 4,
-                            minHeight: "auto",
-                            minWidth: "auto",
-                          }}>
-                          <TrashIcon size={14} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <input
-                      className="input"
-                      placeholder="New subject…"
-                      value={newSubject}
-                      onChange={(e) => setNewSubject(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && handleAddSubject()}
-                      style={{ flex: 1 }}
-                    />
-                    <input
-                      type="color"
-                      value={newColor}
-                      onChange={(e) => setNewColor(e.target.value)}
-                      style={{
-                        background: "none",
-                        border: "1px solid var(--color-border)",
-                        borderRadius: 6,
-                        cursor: "pointer",
-                        height: 38,
-                        padding: 3,
-                        width: 44,
                       }}
                     />
-                    <button
-                      onClick={handleAddSubject}
-                      className="btn btn-primary"
-                      style={{ minHeight: "auto", padding: "0 14px" }}>
-                      <PlusIcon size={16} />
-                    </button>
-                  </div>
-                  <SaveRow
-                    onSave={() => doSave({ dailyGoalHours: focusGoal, dailyHabitGoal: habitGoal, subjects })}
-                    isPending={saving}
-                    saved={savedTab === "goals"}
-                  />
-                </Section>
-              </>
-            )}
+                    <ToggleRow
+                      label="Weekly productivity report"
+                      checked={weeklyReport}
+                      onCheckedChange={setWeeklyReport}
+                    />
 
-            {/* ─── Subscription ─── */}
-            {tab === "subscription" && (
-              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                {/* Plan status */}
-                <div className="card" style={{ padding: "18px 20px" }}>
-                  <div style={{ alignItems: "center", display: "flex", gap: 14, marginBottom: 16 }}>
-                    <div
-                      style={{
-                        background: isPro
-                          ? "color-mix(in srgb, var(--color-warning) 15%, transparent)"
-                          : "var(--color-surface-hover)",
-                        borderRadius: "var(--radius-md)",
-                        padding: 10,
-                      }}>
-                      <CrownIcon
-                        size={22}
-                        weight={isPro ? "fill" : "regular"}
-                        color={isPro ? "var(--color-warning)" : "var(--color-text-muted)"}
+                    <Field label="Daily reminder time">
+                      <Input
+                        type="time"
+                        value={reminderTime}
+                        onChange={(e) => setReminderTime(e.target.value)}
+                        className="w-auto max-w-[140px]"
                       />
-                    </div>
-                    <div>
-                      <p style={{ color: "var(--color-text)", fontWeight: 700 }}>{isPro ? "Pro Plan" : "Free Plan"}</p>
-                      <p style={{ color: "var(--color-text-muted)", fontSize: "0.8rem", marginTop: 2 }}>
-                        {isPro && subStatus?.planExpiresAt
-                          ? `Active until ${new Date(subStatus.planExpiresAt).toLocaleDateString("en-IN", { month: "long", day: "numeric", year: "numeric" })}`
-                          : isPro
-                            ? "Active"
-                            : "10 habits · 30-day history · Basic analytics"}
-                      </p>
-                    </div>
-                  </div>
+                    </Field>
 
-                  {!isPro && (
-                    <button
-                      onClick={() => navigate("/upgrade")}
-                      className="btn btn-primary"
-                      style={{ fontSize: "0.875rem", padding: "9px 20px", minHeight: "auto" }}>
-                      Upgrade to Pro — ₹{PLANS.pro.price.monthly}/mo
-                    </button>
-                  )}
-                </div>
+                    <SaveRow
+                      onSave={() =>
+                        doSave({
+                          notificationsEnabled: notifs,
+                          weeklyReportEnabled: weeklyReport,
+                          dailyReminderTime: reminderTime,
+                        })
+                      }
+                      isPending={saving}
+                      saved={savedTab === "notifications"}
+                    />
+                  </Section>
 
-                {/* Billing details */}
-                {isPro && subStatus?.subscription && (
-                  <div
-                    className="card"
-                    style={{ padding: "18px 20px", display: "flex", flexDirection: "column", gap: 14 }}>
-                    <h2 style={{ color: "var(--color-text)", fontSize: "0.9rem", fontWeight: 600 }}>Billing Details</h2>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                      {[
-                        { label: "Plan", value: "Pro" },
-                        {
-                          label: "Billing",
-                          value: subStatus.subscription.billingCycle === "yearly" ? "Yearly" : "Monthly",
-                        },
-                        { label: "Amount", value: `₹${(subStatus.subscription.amount / 100).toLocaleString("en-IN")}` },
-                        {
-                          label: "Status",
-                          value:
-                            subStatus.subscription.status.charAt(0).toUpperCase() +
-                            subStatus.subscription.status.slice(1),
-                        },
-                        {
-                          label: "Started",
-                          value: new Date(subStatus.subscription.startDate).toLocaleDateString("en-IN", {
-                            month: "short",
-                            day: "numeric",
-                            year: "numeric",
-                          }),
-                        },
-                        {
-                          label: "Renews",
-                          value:
-                            subStatus.subscription.status === "cancelled"
-                              ? "Cancelled"
-                              : new Date(subStatus.subscription.endDate).toLocaleDateString("en-IN", {
-                                  month: "short",
-                                  day: "numeric",
-                                  year: "numeric",
-                                }),
-                        },
-                      ].map(({ label, value }) => (
-                        <div key={label}>
-                          <p style={{ color: "var(--color-text-muted)", fontSize: "0.72rem", marginBottom: 2 }}>
-                            {label}
-                          </p>
-                          <p style={{ color: "var(--color-text)", fontSize: "0.875rem", fontWeight: 500 }}>{value}</p>
+                  <Card>
+                    <CardHeader>
+                      <div className="flex items-center gap-2">
+                        <CardTitle className="text-sm">Smart Reminder</CardTitle>
+                        {!isPro && (
+                          <Badge variant="secondary" className="bg-amber-500/15 text-amber-500 hover:bg-amber-500/15">
+                            PRO
+                          </Badge>
+                        )}
+                      </div>
+                      <CardDescription>
+                        AI-generated reminder based on your actual study patterns and peak productivity hours.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {isPro ? (
+                        <>
+                          {smartReminder && (
+                            <div className="mb-3 rounded-lg border border-primary/25 bg-primary/5 px-3.5 py-2.5">
+                              <p className="text-sm italic text-muted-foreground">
+                                &ldquo;{smartReminder}&rdquo;
+                              </p>
+                            </div>
+                          )}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={reminderLoading}
+                            onClick={async () => {
+                              setReminderLoading(true);
+                              try {
+                                const r = await aiApi.smartReminder();
+                                setSmartReminder(r.data.data.reminder);
+                              } finally {
+                                setReminderLoading(false);
+                              }
+                            }}
+                          >
+                            {reminderLoading
+                              ? "Generating…"
+                              : smartReminder
+                                ? "↻ Refresh reminder"
+                                : "✦ Preview smart reminder"}
+                          </Button>
+                        </>
+                      ) : (
+                        <Button variant="outline" size="sm" onClick={() => navigate("/upgrade")}>
+                          Upgrade to Pro to unlock
+                        </Button>
+                      )}
+                    </CardContent>
+                  </Card>
+              </motion.div>
+            </TabsContent>
+
+            {/* ─── Goals ─── */}
+            <TabsContent value="goals" className="mt-0 space-y-4">
+              <motion.div
+                initial={{ opacity: 0, x: 8 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.12 }}
+                className="space-y-4"
+              >
+                  <Section title="Daily Goals">
+                    {[
+                      { label: "Daily focus goal (hours)", value: focusGoal, set: setFocusGoal, min: 1, max: 12 },
+                      { label: "Daily habit goal (count)", value: habitGoal, set: setHabitGoal, min: 1, max: 20 },
+                    ].map(({ label, value, set, min, max }) => (
+                      <Field key={label} label={label}>
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="range"
+                            min={min}
+                            max={max}
+                            value={value}
+                            onChange={(e) => set(Number(e.target.value))}
+                            className="h-2 flex-1 cursor-pointer accent-primary"
+                          />
+                          <span className="min-w-6 text-right text-sm font-semibold text-foreground">
+                            {value}
+                          </span>
+                        </div>
+                      </Field>
+                    ))}
+                    <SaveRow
+                      onSave={() => doSave({ dailyGoalHours: focusGoal, dailyHabitGoal: habitGoal, subjects })}
+                      isPending={saving}
+                      saved={savedTab === "goals"}
+                    />
+                  </Section>
+
+                  <Section title="Learning Subjects">
+                    <div className="flex flex-col gap-1.5">
+                      {subjects.map(({ id, label, color }) => (
+                        <div key={id} className="flex items-center gap-2.5 py-1.5">
+                          <div className={cn("size-2.5 shrink-0 rounded-full", subjectColorClass(color))} />
+                          <span className="flex-1 text-sm text-foreground">{label}</span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon-xs"
+                            onClick={() => handleRemoveSubject(id)}
+                            className="text-muted-foreground hover:text-destructive"
+                          >
+                            <TrashIcon size={14} />
+                          </Button>
                         </div>
                       ))}
                     </div>
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="New subject…"
+                        value={newSubject}
+                        onChange={(e) => setNewSubject(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && handleAddSubject()}
+                        className="flex-1"
+                      />
+                      <Input
+                        type="color"
+                        value={newColor}
+                        onChange={(e) => setNewColor(e.target.value)}
+                        className="h-8 w-11 cursor-pointer p-0.5"
+                      />
+                      <Button type="button" size="icon" onClick={handleAddSubject}>
+                        <PlusIcon size={16} />
+                      </Button>
+                    </div>
+                    <SaveRow
+                      onSave={() => doSave({ dailyGoalHours: focusGoal, dailyHabitGoal: habitGoal, subjects })}
+                      isPending={saving}
+                      saved={savedTab === "goals"}
+                    />
+                  </Section>
+              </motion.div>
+            </TabsContent>
 
-                    {/* Cancel section */}
-                    {subStatus.subscription.status === "active" && (
-                      <div style={{ borderTop: "1px solid var(--color-border)", paddingTop: 14 }}>
-                        {!cancelConfirm ? (
-                          <button
-                            onClick={() => setCancelConfirm(true)}
-                            style={{
-                              background: "none",
-                              border: "none",
-                              color: "var(--color-danger)",
-                              cursor: "pointer",
-                              fontSize: "0.8rem",
-                              minHeight: "auto",
-                              padding: 0,
-                            }}>
-                            Cancel subscription
-                          </button>
-                        ) : (
-                          <div
-                            style={{
-                              background: "color-mix(in srgb, var(--color-danger) 8%, transparent)",
-                              border: "1px solid color-mix(in srgb, var(--color-danger) 25%, transparent)",
-                              borderRadius: "var(--radius-md)",
-                              padding: "14px",
-                            }}>
-                            <div style={{ alignItems: "flex-start", display: "flex", gap: 10, marginBottom: 12 }}>
-                              <WarningIcon size={18} color="var(--color-danger)" style={{ flexShrink: 0, marginTop: 1 }} />
-                              <div>
-                                <p style={{ color: "var(--color-text)", fontSize: "0.875rem", fontWeight: 600 }}>
-                                  Cancel subscription?
-                                </p>
-                                <p style={{ color: "var(--color-text-muted)", fontSize: "0.8rem", marginTop: 3 }}>
-                                  Pro access continues until{" "}
-                                  {subStatus.planExpiresAt
-                                    ? new Date(subStatus.planExpiresAt).toLocaleDateString("en-IN", {
-                                        month: "long",
-                                        day: "numeric",
-                                      })
-                                    : "expiry"}
-                                  . You won't be charged again.
-                                </p>
-                              </div>
-                            </div>
-                            <div style={{ display: "flex", gap: 8 }}>
-                              <button
-                                onClick={handleCancel}
-                                disabled={cancelSub.isPending}
-                                className="btn btn-danger"
-                                style={{ fontSize: "0.8rem", minHeight: "auto", padding: "6px 14px" }}>
-                                {cancelSub.isPending ? "Cancelling…" : "Yes, cancel"}
-                              </button>
-                              <button
-                                onClick={() => setCancelConfirm(false)}
-                                className="btn btn-ghost"
-                                style={{ fontSize: "0.8rem", minHeight: "auto", padding: "6px 14px" }}>
-                                Keep Pro
-                              </button>
-                            </div>
-                          </div>
-                        )}
+            {/* ─── Subscription ─── */}
+            <TabsContent value="subscription" className="mt-0 space-y-4">
+              <motion.div
+                initial={{ opacity: 0, x: 8 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.12 }}
+                className="space-y-4"
+              >
+                  <Card>
+                    <CardContent className="pt-(--card-spacing)">
+                      <div className="mb-4 flex items-center gap-3.5">
+                        <div
+                          className={cn(
+                            "rounded-lg p-2.5",
+                            isPro ? "bg-amber-500/15" : "bg-muted",
+                          )}
+                        >
+                          <CrownIcon
+                            size={22}
+                            weight={isPro ? "fill" : "regular"}
+                            className={isPro ? "text-amber-500" : "text-muted-foreground"}
+                          />
+                        </div>
+                        <div>
+                          <p className="font-bold text-foreground">{isPro ? "Pro Plan" : "Free Plan"}</p>
+                          <p className="mt-0.5 text-xs text-muted-foreground">
+                            {isPro && subStatus?.planExpiresAt
+                              ? `Active until ${new Date(subStatus.planExpiresAt).toLocaleDateString("en-IN", { month: "long", day: "numeric", year: "numeric" })}`
+                              : isPro
+                                ? "Active"
+                                : "10 habits · 30-day history · Basic analytics"}
+                          </p>
+                        </div>
                       </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-          </motion.div>
-        </AnimatePresence>
-      </div>
+
+                      {!isPro && (
+                        <Button size="sm" onClick={() => navigate("/upgrade")}>
+                          Upgrade to Pro — ₹{PLANS.pro.price.monthly}/mo
+                        </Button>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {isPro && subStatus?.subscription && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-sm">Billing Details</CardTitle>
+                      </CardHeader>
+                      <CardContent className="flex flex-col gap-3.5">
+                        <div className="grid grid-cols-2 gap-3">
+                          {[
+                            { label: "Plan", value: "Pro" },
+                            {
+                              label: "Billing",
+                              value: subStatus.subscription.billingCycle === "yearly" ? "Yearly" : "Monthly",
+                            },
+                            { label: "Amount", value: `₹${(subStatus.subscription.amount / 100).toLocaleString("en-IN")}` },
+                            {
+                              label: "Status",
+                              value:
+                                subStatus.subscription.status.charAt(0).toUpperCase() +
+                                subStatus.subscription.status.slice(1),
+                            },
+                            {
+                              label: "Started",
+                              value: new Date(subStatus.subscription.startDate).toLocaleDateString("en-IN", {
+                                month: "short",
+                                day: "numeric",
+                                year: "numeric",
+                              }),
+                            },
+                            {
+                              label: "Renews",
+                              value:
+                                subStatus.subscription.status === "cancelled"
+                                  ? "Cancelled"
+                                  : new Date(subStatus.subscription.endDate).toLocaleDateString("en-IN", {
+                                      month: "short",
+                                      day: "numeric",
+                                      year: "numeric",
+                                    }),
+                            },
+                          ].map(({ label, value }) => (
+                            <div key={label}>
+                              <p className="mb-0.5 text-[0.72rem] text-muted-foreground">{label}</p>
+                              <p className="text-sm font-medium text-foreground">{value}</p>
+                            </div>
+                          ))}
+                        </div>
+
+                        {subStatus.subscription.status === "active" && (
+                          <>
+                            <Separator />
+                            {!cancelConfirm ? (
+                              <Button
+                                type="button"
+                                variant="link"
+                                className="h-auto p-0 text-destructive hover:text-destructive"
+                                onClick={() => setCancelConfirm(true)}
+                              >
+                                Cancel subscription
+                              </Button>
+                            ) : (
+                              <div className="rounded-lg border border-destructive/25 bg-destructive/5 p-3.5">
+                                <div className="mb-3 flex items-start gap-2.5">
+                                  <WarningIcon size={18} className="mt-0.5 shrink-0 text-destructive" />
+                                  <div>
+                                    <p className="text-sm font-semibold text-foreground">Cancel subscription?</p>
+                                    <p className="mt-0.5 text-xs text-muted-foreground">
+                                      Pro access continues until{" "}
+                                      {subStatus.planExpiresAt
+                                        ? new Date(subStatus.planExpiresAt).toLocaleDateString("en-IN", {
+                                            month: "long",
+                                            day: "numeric",
+                                          })
+                                        : "expiry"}
+                                      . You won&apos;t be charged again.
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="flex gap-2">
+                                  <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    onClick={handleCancel}
+                                    disabled={cancelSub.isPending}
+                                  >
+                                    {cancelSub.isPending ? "Cancelling…" : "Yes, cancel"}
+                                  </Button>
+                                  <Button variant="ghost" size="sm" onClick={() => setCancelConfirm(false)}>
+                                    Keep Pro
+                                  </Button>
+                                </div>
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )}
+              </motion.div>
+            </TabsContent>
+          </div>
+        </Tabs>
+      </PageShell>
     </>
   );
 }

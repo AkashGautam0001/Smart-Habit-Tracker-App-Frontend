@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import type { PomodoroPhase } from '../../config/pomodoro.config';
 import { PHASE_COLORS } from '../../config/pomodoro.config';
+import { cn } from '@/lib/utils';
 
 interface Props {
   progress: number;   // 0 to 1
@@ -19,18 +20,23 @@ export default function TimerRing({ progress, phase, size = 220, timeDisplay }: 
   const color = PHASE_COLORS[phase];
 
   return (
-    <div style={{ position: 'relative', width: size, height: size, flexShrink: 0 }}>
-      <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
-        {/* Track */}
+    <div
+      className="relative shrink-0 w-(--ring-size) h-(--ring-size)"
+      style={{ '--ring-size': `${size}px` } as React.CSSProperties}
+    >
+      <svg width={size} height={size} className="-rotate-90">
         <circle
-          cx={cx} cy={cy} r={r}
+          cx={cx}
+          cy={cy}
+          r={r}
           fill="none"
-          stroke="var(--color-surface-hover)"
+          className="stroke-muted"
           strokeWidth={stroke}
         />
-        {/* Progress arc */}
         <motion.circle
-          cx={cx} cy={cy} r={r}
+          cx={cx}
+          cy={cy}
+          r={r}
           fill="none"
           stroke={color}
           strokeWidth={stroke}
@@ -42,21 +48,13 @@ export default function TimerRing({ progress, phase, size = 220, timeDisplay }: 
         />
       </svg>
 
-      {/* Centre text */}
-      <div style={{
-        position: 'absolute', inset: 0,
-        display: 'flex', flexDirection: 'column',
-        alignItems: 'center', justifyContent: 'center', gap: 0,
-      }}>
-        <span style={{
-          color: 'var(--color-text)',
-          fontFamily: 'var(--font-mono)',
-          fontSize: size >= 200 ? '2.8rem' : '2rem',
-          fontWeight: 700,
-          fontVariantNumeric: 'tabular-nums',
-          letterSpacing: '-0.02em',
-          lineHeight: 1,
-        }}>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span
+          className={cn(
+            'font-mono font-bold tabular-nums tracking-tight text-foreground',
+            size >= 200 ? 'text-[2.8rem]' : 'text-[2rem]',
+          )}
+        >
           {timeDisplay}
         </span>
       </div>

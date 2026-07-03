@@ -1,6 +1,6 @@
 export const APP_CONFIG = {
   name: 'HabitFlow',
-  tagline: 'Track habits. Master focus. Build streaks.',
+  tagline: 'Build better, every day.',
   description: 'A modern productivity OS combining habit tracking, Pomodoro focus timer, and AI-powered study analytics.',
   version: '1.0.0',
   url: import.meta.env.VITE_APP_URL || 'http://localhost:5173',

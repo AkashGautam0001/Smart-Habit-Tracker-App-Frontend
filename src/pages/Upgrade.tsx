@@ -10,6 +10,12 @@ import { useCreateOrder, useVerifyPayment, useSubscriptionStatus } from '../hook
 import { useAuthStore } from '../store/authStore';
 import { APP_CONFIG } from '../config/app.config';
 import { PLANS } from '../config/plans.config';
+import PageShell from '@/components/shared/PageShell';
+import PageHeader from '@/components/shared/PageHeader';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const PRO_FEATURES = [
   { icon: CheckCircleIcon,  text: 'Unlimited habits (Free is limited to 10)' },
@@ -101,24 +107,25 @@ export default function Upgrade() {
 
   if (user?.plan === 'pro' || success) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', gap: 16, textAlign: 'center' }}>
-        <div style={{ background: 'color-mix(in srgb, var(--color-success) 15%, transparent)', borderRadius: '50%', padding: 20 }}>
-          <CrownIcon size={40} weight="fill" color="var(--color-warning)" />
+      <PageShell narrow className="flex min-h-[60vh] flex-col items-center justify-center gap-4 text-center">
+        <div className="rounded-full bg-green-500/15 p-5">
+          <CrownIcon size={40} weight="fill" className="text-amber-500" />
         </div>
-        <h1 style={{ color: 'var(--color-text)', fontSize: '1.5rem', fontWeight: 700 }}>
-          {success ? 'Welcome to Pro!' : 'You\'re already on Pro'}
-        </h1>
-        <p style={{ color: 'var(--color-text-secondary)', maxWidth: 360 }}>
-          {success
-            ? 'Your subscription is active. All Pro features are now unlocked.'
-            : status?.planExpiresAt
-              ? `Your plan is active until ${new Date(status.planExpiresAt).toLocaleDateString('en-IN', { month: 'long', day: 'numeric', year: 'numeric' })}.`
-              : 'Enjoy unlimited access to all features.'}
-        </p>
-        <button className="btn btn-primary" onClick={() => navigate('/dashboard')} style={{ marginTop: 8 }}>
+        <PageHeader
+          className="flex-col items-center text-center"
+          title={success ? 'Welcome to Pro!' : "You're already on Pro"}
+          description={
+            success
+              ? 'Your subscription is active. All Pro features are now unlocked.'
+              : status?.planExpiresAt
+                ? `Your plan is active until ${new Date(status.planExpiresAt).toLocaleDateString('en-IN', { month: 'long', day: 'numeric', year: 'numeric' })}.`
+                : 'Enjoy unlimited access to all features.'
+          }
+        />
+        <Button className="mt-2" onClick={() => navigate('/dashboard')}>
           Go to Dashboard
-        </button>
-      </div>
+        </Button>
+      </PageShell>
     );
   }
 
@@ -129,134 +136,100 @@ export default function Upgrade() {
         <meta name="robots" content="noindex" />
       </Helmet>
 
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 32, maxWidth: 520, margin: '0 auto' }}>
-        {/* Header */}
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 8 }}>
-            <CrownIcon size={28} weight="fill" color="var(--color-warning)" />
-            <h1 style={{ color: 'var(--color-text)', fontSize: '1.5rem', fontWeight: 700 }}>
-              Upgrade to Pro
-            </h1>
+      <PageShell narrow className="mx-auto flex max-w-[520px] flex-col items-center gap-8">
+        <div className="text-center">
+          <div className="mb-2 inline-flex items-center justify-center gap-2">
+            <CrownIcon size={28} weight="fill" className="text-amber-500" />
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">Upgrade to Pro</h1>
           </div>
-          <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.9rem' }}>
+          <p className="text-sm text-muted-foreground">
             Unlock unlimited habits, AI coaching, advanced analytics, and more.
           </p>
         </div>
 
-        {/* Billing toggle */}
-        <div style={{
-          background: 'var(--color-surface)',
-          border: '1px solid var(--color-border)',
-          borderRadius: 'var(--radius-full)',
-          display: 'flex',
-          padding: 4,
-          gap: 4,
-          alignSelf: 'center',
-        }}>
-          {(['monthly', 'yearly'] as const).map((c) => (
-            <button
-              key={c}
-              onClick={() => setCycle(c)}
-              style={{
-                background: cycle === c ? 'var(--color-accent)' : 'transparent',
-                border: 'none',
-                borderRadius: 'var(--radius-full)',
-                color: cycle === c ? '#fff' : 'var(--color-text-secondary)',
-                cursor: 'pointer',
-                fontSize: '0.85rem',
-                fontWeight: 500,
-                minHeight: 'auto',
-                padding: '6px 18px',
-                transition: 'all 0.15s',
-              }}
-            >
-              {c === 'yearly' ? `Yearly (save ${savedMonths} months)` : 'Monthly'}
-            </button>
-          ))}
-        </div>
+        <Tabs
+          value={cycle}
+          onValueChange={(v) => setCycle(v as 'monthly' | 'yearly')}
+          className="self-center"
+        >
+          <TabsList className="rounded-full">
+            <TabsTrigger value="monthly">Monthly</TabsTrigger>
+            <TabsTrigger value="yearly">
+              Yearly (save {savedMonths} months)
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
 
-        {/* Price card */}
         <motion.div
           key={cycle}
           initial={{ opacity: 0, y: 4 }}
           animate={{ opacity: 1, y: 0 }}
-          className="card"
-          style={{
-            width: '100%',
-            padding: '28px 24px',
-            background: 'color-mix(in srgb, var(--color-accent) 5%, var(--color-surface))',
-            borderColor: 'color-mix(in srgb, var(--color-accent) 40%, transparent)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 20,
-          }}
+          className="w-full"
         >
-          {/* Price */}
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 4 }}>
-              <span style={{ color: 'var(--color-text)', fontSize: '2.4rem', fontWeight: 800, letterSpacing: '-0.04em' }}>
-                {displayPrice}
-              </span>
-            </div>
-            <p style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem', marginTop: 4 }}>{billedAs}</p>
-            {cycle === 'yearly' && (
-              <span style={{
-                display: 'inline-block', marginTop: 8,
-                background: 'color-mix(in srgb, var(--color-success) 15%, transparent)',
-                border: '1px solid color-mix(in srgb, var(--color-success) 30%, transparent)',
-                borderRadius: 'var(--radius-full)',
-                color: 'var(--color-success)',
-                fontSize: '0.72rem', fontWeight: 600,
-                padding: '2px 10px',
-              }}>
-                Save ₹{12 * monthly - yearly}
-              </span>
-            )}
-          </div>
-
-          {/* Features */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {PRO_FEATURES.map(({ icon: Icon, text }) => (
-              <div key={text} style={{ alignItems: 'flex-start', display: 'flex', gap: 10 }}>
-                <Icon size={17} weight="duotone" color="var(--color-accent)" style={{ flexShrink: 0, marginTop: 2 }} />
-                <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.875rem' }}>{text}</span>
+          <Card className="w-full border-primary/40 bg-primary/5 py-0">
+            <CardContent className="flex flex-col gap-5 px-6 py-7">
+              <div className="text-center">
+                <div className="flex items-baseline justify-center gap-1">
+                  <span className="text-4xl font-extrabold tracking-tight text-foreground">
+                    {displayPrice}
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">{billedAs}</p>
+                {cycle === 'yearly' && (
+                  <Badge
+                    variant="secondary"
+                    className="mt-2 border border-green-500/30 bg-green-500/15 text-green-500"
+                  >
+                    Save ₹{12 * monthly - yearly}
+                  </Badge>
+                )}
               </div>
-            ))}
-          </div>
 
-          {/* Error */}
-          <AnimatePresence>
-            {error && (
-              <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                style={{ background: 'color-mix(in srgb, var(--color-danger) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--color-danger) 30%, transparent)', borderRadius: 'var(--radius-md)', color: 'var(--color-danger)', fontSize: '0.8rem', padding: '10px 12px' }}>
-                {error}
-              </motion.p>
-            )}
-          </AnimatePresence>
-
-          {/* CTA */}
-          <motion.button
-            whileTap={{ scale: 0.98 }}
-            onClick={handleUpgrade}
-            disabled={createOrder.isPending || verifyPayment.isPending}
-            className="btn btn-primary"
-            style={{ fontSize: '1rem', fontWeight: 600, padding: '12px', width: '100%' }}
-          >
-            {createOrder.isPending || verifyPayment.isPending
-              ? 'Processing…'
-              : `Upgrade Now — ${cycle === 'yearly' ? `₹${yearly}/yr` : `₹${monthly}/mo`}`}
-          </motion.button>
-
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 20 }}>
-            {['Cancel anytime', 'Instant activation', 'Secure payment'].map((t) => (
-              <div key={t} style={{ alignItems: 'center', display: 'flex', gap: 4 }}>
-                <StarIcon size={11} color="var(--color-text-muted)" />
-                <span style={{ color: 'var(--color-text-muted)', fontSize: '0.7rem' }}>{t}</span>
+              <div className="flex flex-col gap-2.5">
+                {PRO_FEATURES.map(({ icon: Icon, text }) => (
+                  <div key={text} className="flex items-start gap-2.5">
+                    <Icon size={17} weight="duotone" className="mt-0.5 shrink-0 text-primary" />
+                    <span className="text-sm text-muted-foreground">{text}</span>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+
+              <AnimatePresence>
+                {error && (
+                  <motion.p
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2.5 text-xs text-destructive"
+                  >
+                    {error}
+                  </motion.p>
+                )}
+              </AnimatePresence>
+
+              <Button
+                size="lg"
+                className="w-full text-base font-semibold"
+                onClick={handleUpgrade}
+                disabled={createOrder.isPending || verifyPayment.isPending}
+              >
+                {createOrder.isPending || verifyPayment.isPending
+                  ? 'Processing…'
+                  : `Upgrade Now — ${cycle === 'yearly' ? `₹${yearly}/yr` : `₹${monthly}/mo`}`}
+              </Button>
+
+              <div className="flex justify-center gap-5">
+                {['Cancel anytime', 'Instant activation', 'Secure payment'].map((t) => (
+                  <div key={t} className="flex items-center gap-1">
+                    <StarIcon size={11} className="text-muted-foreground" />
+                    <span className="text-[0.7rem] text-muted-foreground">{t}</span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         </motion.div>
-      </div>
+      </PageShell>
     </>
   );
 }

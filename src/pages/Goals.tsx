@@ -10,10 +10,71 @@ import { usePlan } from '../hooks/usePlan';
 import { useGoals, useCreateGoal, useUpdateGoal, useDeleteGoal, useToggleMilestone } from '../hooks/useGoals';
 import { useSettings } from '../hooks/useSettings';
 import StudyPlannerCard from '../components/ai/StudyPlannerCard';
+import PageShell from '@/components/shared/PageShell';
+import PageHeader from '@/components/shared/PageHeader';
+import EmptyState from '@/components/shared/EmptyState';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Separator } from '@/components/ui/separator';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogMedia,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { cn } from '@/lib/utils';
 import type { Goal, Milestone } from '../types';
 
 // ── constants ─────────────────────────────────────────────────────────────────
 const GOAL_COLORS = ['#6366f1', '#22c55e', '#f59e0b', '#3b82f6', '#ef4444', '#ec4899', '#8b5cf6', '#06b6d4'];
+
+const GOAL_COLOR_BG: Record<string, string> = {
+  '#6366f1': 'bg-indigo-500',
+  '#22c55e': 'bg-green-500',
+  '#f59e0b': 'bg-amber-500',
+  '#3b82f6': 'bg-blue-500',
+  '#ef4444': 'bg-red-500',
+  '#ec4899': 'bg-pink-500',
+  '#8b5cf6': 'bg-violet-500',
+  '#06b6d4': 'bg-cyan-500',
+};
+
+const GOAL_PROGRESS_INDICATOR: Record<string, string> = {
+  '#6366f1': '[&_[data-slot=progress-indicator]]:bg-indigo-500',
+  '#22c55e': '[&_[data-slot=progress-indicator]]:bg-green-500',
+  '#f59e0b': '[&_[data-slot=progress-indicator]]:bg-amber-500',
+  '#3b82f6': '[&_[data-slot=progress-indicator]]:bg-blue-500',
+  '#ef4444': '[&_[data-slot=progress-indicator]]:bg-red-500',
+  '#ec4899': '[&_[data-slot=progress-indicator]]:bg-pink-500',
+  '#8b5cf6': '[&_[data-slot=progress-indicator]]:bg-violet-500',
+  '#06b6d4': '[&_[data-slot=progress-indicator]]:bg-cyan-500',
+};
+
+function goalColorClass(color: string) {
+  return GOAL_COLOR_BG[color.toLowerCase()] ?? 'bg-primary';
+}
+
+function goalProgressClass(color: string, complete: boolean) {
+  if (complete) return '[&_[data-slot=progress-indicator]]:bg-green-500';
+  return GOAL_PROGRESS_INDICATOR[color.toLowerCase()] ?? '[&_[data-slot=progress-indicator]]:bg-primary';
+}
 
 function fmtDate(iso?: string): string {
   if (!iso) return '';
@@ -81,124 +142,140 @@ function GoalForm({ open, onClose, onSubmit, initial, isPending, availableSubjec
   };
 
   return (
-    <AnimatePresence>
-      {open && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            onClick={onClose}
-            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 200 }}
-          />
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 10 }}
-            style={{
-              position: 'fixed', left: '50%', top: '50%', transform: 'translate(-50%, -50%)',
-              width: 'calc(100% - 32px)', maxWidth: 500, maxHeight: '90dvh', overflowY: 'auto',
-              background: 'var(--color-surface)', border: '1px solid var(--color-border)',
-              borderRadius: 'var(--radius-xl)', boxShadow: 'var(--shadow-lg)', padding: 24, zIndex: 201,
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-              <h2 style={{ fontSize: '1rem', fontWeight: 600 }}>{initial ? 'Edit Goal' : 'New Goal'}</h2>
-              <button onClick={onClose} style={{ background: 'var(--color-surface-hover)', border: 'none', borderRadius: '50%', color: 'var(--color-text-muted)', cursor: 'pointer', width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <XIcon size={15} weight="bold" />
-              </button>
-            </div>
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-h-[90dvh] max-w-lg overflow-y-auto sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>{initial ? 'Edit Goal' : 'New Goal'}</DialogTitle>
+        </DialogHeader>
 
-            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              {/* Title */}
-              <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 500, color: 'var(--color-text-secondary)', marginBottom: 6 }}>Goal</label>
-                <input className="input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Master DSA in 3 months" autoFocus maxLength={200} />
-              </div>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="goal-title">Goal</Label>
+            <Input
+              id="goal-title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="e.g. Master DSA in 3 months"
+              autoFocus
+              maxLength={200}
+            />
+          </div>
 
-              {/* Color */}
-              <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 500, color: 'var(--color-text-secondary)', marginBottom: 8 }}>Color</label>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  {GOAL_COLORS.map((c) => (
-                    <button key={c} type="button" onClick={() => setColor(c)}
-                      style={{ width: 26, height: 26, borderRadius: '50%', background: c, border: `2px solid ${color === c ? '#fff' : 'transparent'}`, cursor: 'pointer', transition: 'transform 0.1s', transform: color === c ? 'scale(1.15)' : 'scale(1)' }}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              {/* Target date */}
-              <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 500, color: 'var(--color-text-secondary)', marginBottom: 6 }}>Target Date (optional)</label>
-                <input className="input" type="date" value={targetDate} onChange={(e) => setTargetDate(e.target.value)}
-                  style={{ colorScheme: 'dark' }}
+          <div className="space-y-2">
+            <Label>Color</Label>
+            <div className="flex flex-wrap gap-2">
+              {GOAL_COLORS.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => setColor(c)}
+                  className={cn(
+                    'size-[26px] cursor-pointer rounded-full transition-transform',
+                    goalColorClass(c),
+                    color === c ? 'scale-110 ring-2 ring-white' : 'scale-100',
+                  )}
+                  aria-label={`Color ${c}`}
                 />
-              </div>
+              ))}
+            </div>
+          </div>
 
-              {/* Subjects */}
-              {availableSubjects.length > 0 && (
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 500, color: 'var(--color-text-secondary)', marginBottom: 8 }}>Subjects</label>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                    {availableSubjects.map((s) => (
-                      <button key={s} type="button" onClick={() => toggleSubject(s)}
-                        style={{
-                          padding: '5px 11px', borderRadius: 'var(--radius-md)', fontSize: '0.8rem', fontWeight: 500,
-                          background: subjects.includes(s) ? 'rgba(99,102,241,0.15)' : 'var(--color-surface-hover)',
-                          border: `1px solid ${subjects.includes(s) ? 'rgba(99,102,241,0.4)' : 'var(--color-border)'}`,
-                          color: subjects.includes(s) ? 'var(--color-accent)' : 'var(--color-text-secondary)',
-                          cursor: 'pointer',
-                        }}
-                      >{s}</button>
-                    ))}
-                  </div>
-                </div>
-              )}
+          <div className="space-y-2">
+            <Label htmlFor="goal-date">Target Date (optional)</Label>
+            <Input
+              id="goal-date"
+              type="date"
+              value={targetDate}
+              onChange={(e) => setTargetDate(e.target.value)}
+              className="dark:scheme-dark"
+            />
+          </div>
 
-              {/* Milestones */}
-              <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 500, color: 'var(--color-text-secondary)', marginBottom: 8 }}>Milestones</label>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {milestones.map((m, i) => (
-                    <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                      <input
-                        className="input"
-                        value={m}
-                        onChange={(e) => handleMilestone(i, e.target.value)}
-                        placeholder={`Milestone ${i + 1}`}
-                        style={{ flex: 1 }}
-                      />
-                      {milestones.length > 1 && (
-                        <button type="button" onClick={() => removeMilestone(i)}
-                          style={{ background: 'none', border: 'none', color: 'var(--color-text-muted)', cursor: 'pointer', padding: 4 }}>
-                          <XIcon size={14} weight="bold" />
-                        </button>
+          {availableSubjects.length > 0 && (
+            <div className="space-y-2">
+              <Label>Subjects</Label>
+              <div className="flex flex-wrap gap-1.5">
+                {availableSubjects.map((s) => {
+                  const selected = subjects.includes(s);
+                  return (
+                    <Button
+                      key={s}
+                      type="button"
+                      variant={selected ? 'secondary' : 'outline'}
+                      size="sm"
+                      className={cn(
+                        'h-7 text-xs',
+                        selected && 'border-primary/40 bg-primary/15 text-primary',
                       )}
-                    </div>
-                  ))}
-                  <button type="button" onClick={addMilestone}
-                    style={{ background: 'none', border: '1px dashed var(--color-border)', borderRadius: 'var(--radius-md)', color: 'var(--color-text-muted)', cursor: 'pointer', fontSize: '0.8rem', padding: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                    <PlusIcon size={13} weight="bold" /> Add milestone
-                  </button>
+                      onClick={() => toggleSubject(s)}
+                    >
+                      {s}
+                    </Button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <Label>Milestones</Label>
+            <div className="flex flex-col gap-2">
+              {milestones.map((m, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <Input
+                    value={m}
+                    onChange={(e) => handleMilestone(i, e.target.value)}
+                    placeholder={`Milestone ${i + 1}`}
+                    className="flex-1"
+                  />
+                  {milestones.length > 1 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      onClick={() => removeMilestone(i)}
+                      aria-label="Remove milestone"
+                    >
+                      <XIcon size={14} weight="bold" />
+                    </Button>
+                  )}
                 </div>
-              </div>
+              ))}
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full border-dashed text-muted-foreground"
+                onClick={addMilestone}
+              >
+                <PlusIcon size={13} weight="bold" />
+                Add milestone
+              </Button>
+            </div>
+          </div>
 
-              {/* Description */}
-              <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 500, color: 'var(--color-text-secondary)', marginBottom: 6 }}>Notes (optional)</label>
-                <textarea className="input" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Why this goal matters…" rows={2} maxLength={1000} style={{ resize: 'vertical' }} />
-              </div>
+          <div className="space-y-2">
+            <Label htmlFor="goal-notes">Notes (optional)</Label>
+            <Textarea
+              id="goal-notes"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Why this goal matters…"
+              rows={2}
+              maxLength={1000}
+            />
+          </div>
 
-              <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
-                <button type="button" onClick={onClose} className="btn btn-ghost" style={{ flex: 1 }}>Cancel</button>
-                <button type="submit" disabled={!title.trim() || isPending} className="btn btn-primary" style={{ flex: 2 }}>
-                  {isPending ? 'Saving…' : initial ? 'Save Changes' : 'Create Goal'}
-                </button>
-              </div>
-            </form>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+          <div className="flex gap-2.5 pt-1">
+            <Button type="button" variant="outline" onClick={onClose} className="flex-1">
+              Cancel
+            </Button>
+            <Button type="submit" disabled={!title.trim() || isPending} className="flex-2">
+              {isPending ? 'Saving…' : initial ? 'Save Changes' : 'Create Goal'}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -218,118 +295,161 @@ function GoalCard({ goal, onEdit, onDelete, onToggleMilestone }: GoalCardProps) 
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="card"
-      style={{ padding: 0, overflow: 'hidden', opacity: goal.isCompleted ? 0.7 : 1 }}
     >
-      {/* Color strip */}
-      <div style={{ height: 4, background: goal.color }} />
-
-      <div style={{ padding: '16px 18px' }}>
-        {/* Title row */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 10 }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <h3 style={{ fontSize: '0.95rem', fontWeight: 600, color: goal.isCompleted ? 'var(--color-text-muted)' : 'var(--color-text)', textDecoration: goal.isCompleted ? 'line-through' : 'none', marginBottom: 6, lineHeight: 1.3 }}>
-              {goal.title}
-            </h3>
-            {/* Subject tags */}
-            {goal.subjects.length > 0 && (
-              <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 8 }}>
-                {goal.subjects.map((s) => (
-                  <span key={s} style={{ fontSize: '0.72rem', fontWeight: 500, padding: '2px 8px', borderRadius: 999, background: 'var(--color-surface-hover)', color: 'var(--color-text-secondary)', border: '1px solid var(--color-border)' }}>
-                    {s}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-          <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-            <button onClick={onEdit} style={{ background: 'var(--color-surface-hover)', border: 'none', borderRadius: 6, color: 'var(--color-text-muted)', cursor: 'pointer', padding: '5px 8px', display: 'flex', alignItems: 'center' }}>
-              <Pencil size={14} />
-            </button>
-            <button onClick={onDelete} style={{ background: 'var(--color-surface-hover)', border: 'none', borderRadius: 6, color: 'var(--color-danger)', cursor: 'pointer', padding: '5px 8px', display: 'flex', alignItems: 'center', opacity: 0.7 }}>
-              <TrashIcon size={14} />
-            </button>
-          </div>
-        </div>
-
-        {/* Progress bar */}
-        {goal.milestones.length > 0 && (
-          <div style={{ marginBottom: 10 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-              <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
-                {done}/{goal.milestones.length} milestones
-              </span>
-              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: goal.progress === 100 ? 'var(--color-success)' : 'var(--color-text-secondary)' }}>
-                {goal.progress}%
-              </span>
-            </div>
-            <div style={{ height: 6, borderRadius: 3, background: 'var(--color-surface-hover)', overflow: 'hidden' }}>
-              <div style={{ height: '100%', borderRadius: 3, width: `${goal.progress}%`, background: goal.progress === 100 ? 'var(--color-success)' : goal.color, transition: 'width 500ms ease' }} />
-            </div>
-          </div>
+      <Card
+        className={cn(
+          'gap-0 overflow-hidden py-0',
+          goal.isCompleted && 'opacity-70',
         )}
+      >
+        <div className={cn('h-1', goalColorClass(goal.color))} />
 
-        {/* Meta row */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-            {goal.targetDate && (
-              <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.74rem', color: isOverdue(goal.targetDate) && !goal.isCompleted ? 'var(--color-danger)' : 'var(--color-text-muted)' }}>
-                <CalendarBlank size={12} />
-                {fmtDate(goal.targetDate)}
-              </span>
-            )}
-            {goal.isCompleted && <span style={{ fontSize: '0.74rem', color: 'var(--color-success)', fontWeight: 600 }}>✓ Completed</span>}
+        <CardContent className="px-[18px] py-4">
+          <div className="mb-2.5 flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <h3
+                className={cn(
+                  'mb-1.5 text-[0.95rem] font-semibold leading-snug',
+                  goal.isCompleted
+                    ? 'text-muted-foreground line-through'
+                    : 'text-foreground',
+                )}
+              >
+                {goal.title}
+              </h3>
+              {goal.subjects.length > 0 && (
+                <div className="mb-2 flex flex-wrap gap-1">
+                  {goal.subjects.map((s) => (
+                    <Badge key={s} variant="outline" className="text-[0.72rem] font-medium">
+                      {s}
+                    </Badge>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="flex shrink-0 gap-1.5">
+              <Button variant="secondary" size="icon-sm" onClick={onEdit} aria-label="Edit goal">
+                <Pencil size={14} />
+              </Button>
+              <Button
+                variant="secondary"
+                size="icon-sm"
+                onClick={onDelete}
+                className="text-destructive opacity-70 hover:text-destructive"
+                aria-label="Delete goal"
+              >
+                <TrashIcon size={14} />
+              </Button>
+            </div>
           </div>
 
           {goal.milestones.length > 0 && (
-            <button
-              onClick={() => setExpanded((e) => !e)}
-              style={{ background: 'none', border: 'none', color: 'var(--color-text-muted)', cursor: 'pointer', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: 4, padding: '4px 0' }}
-            >
-              {expanded ? <CaretUpIcon size={12} /> : <CaretDownIcon size={12} />}
-              {expanded ? 'Hide' : 'Milestones'}
-            </button>
-          )}
-        </div>
-
-        {/* Milestones list */}
-        <AnimatePresence>
-          {expanded && goal.milestones.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              style={{ overflow: 'hidden' }}
-            >
-              <div style={{ borderTop: '1px solid var(--color-border)', marginTop: 12, paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {goal.milestones.map((m: Milestone) => (
-                  <button
-                    key={m._id}
-                    onClick={() => onToggleMilestone(m._id)}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 10, background: 'none', border: 'none',
-                      cursor: 'pointer', padding: '6px 0', textAlign: 'left', width: '100%',
-                    }}
-                  >
-                    {m.isCompleted
-                      ? <CheckCircleIcon size={16} weight="fill" style={{ color: 'var(--color-success)', flexShrink: 0 }} />
-                      : <CircleIcon size={16} style={{ color: 'var(--color-text-muted)', flexShrink: 0 }} />
-                    }
-                    <span style={{ fontSize: '0.84rem', color: m.isCompleted ? 'var(--color-text-muted)' : 'var(--color-text)', textDecoration: m.isCompleted ? 'line-through' : 'none' }}>
-                      {m.title}
-                    </span>
-                  </button>
-                ))}
+            <div className="mb-2.5">
+              <div className="mb-1.5 flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">
+                  {done}/{goal.milestones.length} milestones
+                </span>
+                <span
+                  className={cn(
+                    'text-xs font-semibold',
+                    goal.progress === 100 ? 'text-green-500' : 'text-muted-foreground',
+                  )}
+                >
+                  {goal.progress}%
+                </span>
               </div>
-            </motion.div>
+              <Progress
+                value={goal.progress}
+                className={cn('h-1.5', goalProgressClass(goal.color, goal.progress === 100))}
+              />
+            </div>
           )}
-        </AnimatePresence>
-      </div>
+
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              {goal.targetDate && (
+                <span
+                  className={cn(
+                    'flex items-center gap-1 text-[0.74rem]',
+                    isOverdue(goal.targetDate) && !goal.isCompleted
+                      ? 'text-destructive'
+                      : 'text-muted-foreground',
+                  )}
+                >
+                  <CalendarBlank size={12} />
+                  {fmtDate(goal.targetDate)}
+                </span>
+              )}
+              {goal.isCompleted && (
+                <span className="text-[0.74rem] font-semibold text-green-500">✓ Completed</span>
+              )}
+            </div>
+
+            {goal.milestones.length > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-auto gap-1 px-0 text-xs text-muted-foreground"
+                onClick={() => setExpanded((e) => !e)}
+              >
+                {expanded ? <CaretUpIcon size={12} /> : <CaretDownIcon size={12} />}
+                {expanded ? 'Hide' : 'Milestones'}
+              </Button>
+            )}
+          </div>
+
+          <AnimatePresence>
+            {expanded && goal.milestones.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="overflow-hidden"
+              >
+                <Separator className="my-3" />
+                <div className="flex flex-col gap-2">
+                  {goal.milestones.map((m: Milestone) => (
+                    <button
+                      key={m._id}
+                      type="button"
+                      onClick={() => onToggleMilestone(m._id)}
+                      className="flex w-full cursor-pointer items-center gap-2.5 border-none bg-transparent p-1.5 text-left"
+                    >
+                      {m.isCompleted ? (
+                        <CheckCircleIcon size={16} weight="fill" className="shrink-0 text-green-500" />
+                      ) : (
+                        <CircleIcon size={16} className="shrink-0 text-muted-foreground" />
+                      )}
+                      <span
+                        className={cn(
+                          'text-[0.84rem]',
+                          m.isCompleted
+                            ? 'text-muted-foreground line-through'
+                            : 'text-foreground',
+                        )}
+                      >
+                        {m.title}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </CardContent>
+      </Card>
     </motion.div>
   );
 }
 
 // ── page ─────────────────────────────────────────────────────────────────────
+const PRO_FEATURES = [
+  'Custom goal with color coding',
+  'Milestone-based progress (auto-calculated)',
+  'Subject tags',
+  'Target date with overdue alerts',
+];
+
 export default function Goals() {
   const { isPro, canDo } = usePlan();
   const navigate = useNavigate();
@@ -350,31 +470,43 @@ export default function Goals() {
   const active    = goals.filter((g) => !g.isCompleted);
   const completed = goals.filter((g) => g.isCompleted);
 
+  const openNewGoalForm = () => {
+    setEditing(undefined);
+    setFormOpen(true);
+  };
+
   if (!canDo('goals')) {
     return (
       <>
         <Helmet><title>Goals — HabitFlow</title><meta name="robots" content="noindex" /></Helmet>
-        <div style={{ maxWidth: 560 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 24 }}>
-            <TargetIcon size={22} weight="duotone" style={{ color: 'var(--color-accent)' }} />
-            <h1 style={{ fontSize: '1.25rem', fontWeight: 700 }}>Goals</h1>
-          </div>
-          <div className="card" style={{ padding: '28px 24px', textAlign: 'center', borderColor: 'rgba(99,102,241,0.3)', background: 'rgba(99,102,241,0.04)' }}>
-            <LockIcon size={32} weight="duotone" style={{ color: 'var(--color-accent)', opacity: 0.6, marginBottom: 12 }} />
-            <h3 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: 8 }}>Goals — Pro Feature</h3>
-            <p style={{ fontSize: '0.84rem', color: 'var(--color-text-secondary)', maxWidth: 340, margin: '0 auto 20px' }}>
-              Set learning goals with milestones and track your progress. Stay focused on what matters most.
-            </p>
-            <ul style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-start', gap: 7, marginBottom: 24, textAlign: 'left' }}>
-              {['Custom goal with color coding', 'Milestone-based progress (auto-calculated)', 'Subject tags', 'Target date with overdue alerts'].map((f) => (
-                <li key={f} style={{ listStyle: 'none', display: 'flex', gap: 8, fontSize: '0.83rem', color: 'var(--color-text-secondary)' }}>
-                  <span style={{ color: 'var(--color-accent)', fontWeight: 700 }}>✓</span> {f}
-                </li>
-              ))}
-            </ul>
-            <button className="btn btn-primary" onClick={() => navigate('/upgrade')}>Upgrade to Pro — ₹149/month</button>
-          </div>
-        </div>
+        <PageShell narrow>
+          <PageHeader
+            title={
+              <span className="flex items-center gap-2.5">
+                <TargetIcon size={22} weight="duotone" className="text-primary" />
+                Goals
+              </span>
+            }
+          />
+          <Card className="border-primary/30 bg-primary/5">
+            <CardContent className="flex flex-col items-center px-6 py-7 text-center">
+              <LockIcon size={32} weight="duotone" className="mb-3 text-primary opacity-60" />
+              <h3 className="mb-2 text-base font-bold">Goals — Pro Feature</h3>
+              <p className="mb-5 max-w-[340px] text-sm text-muted-foreground">
+                Set learning goals with milestones and track your progress. Stay focused on what matters most.
+              </p>
+              <ul className="mb-6 inline-flex flex-col items-start gap-1.5 text-left">
+                {PRO_FEATURES.map((f) => (
+                  <li key={f} className="flex gap-2 text-sm text-muted-foreground">
+                    <span className="font-bold text-primary">✓</span>
+                    {f}
+                  </li>
+                ))}
+              </ul>
+              <Button onClick={() => navigate('/upgrade')}>Upgrade to Pro — ₹149/month</Button>
+            </CardContent>
+          </Card>
+        </PageShell>
       </>
     );
   }
@@ -383,7 +515,6 @@ export default function Goals() {
     <>
       <Helmet><title>Goals — HabitFlow</title><meta name="robots" content="noindex" /></Helmet>
 
-      {/* Goal form */}
       <GoalForm
         open={formOpen}
         onClose={() => { setFormOpen(false); setEditing(undefined); }}
@@ -399,69 +530,70 @@ export default function Goals() {
         availableSubjects={availableSubjects}
       />
 
-      {/* Confirm delete */}
-      <AnimatePresence>
-        {confirmDelete && (
-          <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => setConfirmDelete(null)}
-              style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 200 }} />
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
-              style={{ position: 'fixed', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-xl)', padding: 24, zIndex: 201, width: 'calc(100% - 32px)', maxWidth: 360, textAlign: 'center' }}>
-              <TrashIcon size={28} weight="duotone" style={{ color: 'var(--color-danger)', marginBottom: 12 }} />
-              <h3 style={{ fontWeight: 600, marginBottom: 8 }}>Delete this goal?</h3>
-              <p style={{ fontSize: '0.84rem', color: 'var(--color-text-secondary)', marginBottom: 20 }}>All milestones will be permanently deleted.</p>
-              <div style={{ display: 'flex', gap: 10 }}>
-                <button onClick={() => setConfirmDelete(null)} className="btn btn-ghost" style={{ flex: 1 }}>Cancel</button>
-                <button onClick={() => { del.mutate(confirmDelete); setConfirmDelete(null); }} className="btn btn-danger" style={{ flex: 1 }}>Delete</button>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+      <AlertDialog open={!!confirmDelete} onOpenChange={(v) => !v && setConfirmDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogMedia className="bg-destructive/10 text-destructive">
+              <TrashIcon size={24} weight="duotone" />
+            </AlertDialogMedia>
+            <AlertDialogTitle>Delete this goal?</AlertDialogTitle>
+            <AlertDialogDescription>
+              All milestones will be permanently deleted.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={() => {
+                if (confirmDelete) del.mutate(confirmDelete);
+                setConfirmDelete(null);
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
-      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.18 }}
-        style={{ display: 'flex', flexDirection: 'column', gap: 20, maxWidth: 720 }}>
-
-        {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <TargetIcon size={22} weight="duotone" style={{ color: 'var(--color-accent)' }} />
-            <h1 style={{ fontSize: '1.25rem', fontWeight: 700 }}>Goals</h1>
-            <span style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', background: 'var(--color-surface-hover)', padding: '2px 8px', borderRadius: 999 }}>
-              {active.length} active
+      <PageShell narrow className="max-w-[720px]">
+        <PageHeader
+          title={
+            <span className="flex items-center gap-2.5">
+              <TargetIcon size={22} weight="duotone" className="text-primary" />
+              Goals
+              <Badge variant="secondary">{active.length} active</Badge>
             </span>
-          </div>
-          <motion.button whileTap={{ scale: 0.96 }} onClick={() => { setEditing(undefined); setFormOpen(true); }}
-            className="btn btn-primary" style={{ gap: 6, padding: '8px 16px' }}>
-            <PlusIcon size={15} weight="bold" /> New Goal
-          </motion.button>
-        </div>
+          }
+          action={
+            <motion.div whileTap={{ scale: 0.96 }} className="inline-flex">
+              <Button onClick={openNewGoalForm}>
+                <PlusIcon size={15} weight="bold" />
+                New Goal
+              </Button>
+            </motion.div>
+          }
+        />
 
-        {/* Loading */}
         {isLoading && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {[1, 2].map((i) => <div key={i} className="skeleton" style={{ height: 100 }} />)}
+          <div className="flex flex-col gap-3">
+            {[1, 2].map((i) => (
+              <Skeleton key={i} className="h-[100px] rounded-xl" />
+            ))}
           </div>
         )}
 
-        {/* Empty state */}
         {!isLoading && goals.length === 0 && (
-          <div className="card" style={{ padding: '40px 24px', textAlign: 'center' }}>
-            <div style={{ fontSize: '2.5rem', marginBottom: 12 }}>🎯</div>
-            <h2 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: 8 }}>No goals yet</h2>
-            <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', marginBottom: 20 }}>
-              Start with something meaningful — "Master DSA", "Read 25 books", "Learn Spanish B2"
-            </p>
-            <button className="btn btn-primary" onClick={() => setFormOpen(true)}>
-              <PlusIcon size={15} weight="bold" /> Create your first goal
-            </button>
-          </div>
+          <EmptyState
+            icon="Target"
+            title="No goals yet"
+            description={'Start with something meaningful — "Master DSA", "Read 25 books", "Learn Spanish B2"'}
+            action={{ label: 'Create your first goal', onClick: () => setFormOpen(true) }}
+          />
         )}
 
-        {/* Active goals */}
         {active.length > 0 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div className="flex flex-col gap-3">
             {active.map((goal) => (
               <GoalCard
                 key={goal._id}
@@ -474,11 +606,12 @@ export default function Goals() {
           </div>
         )}
 
-        {/* Completed goals */}
         {completed.length > 0 && (
           <div>
-            <h2 style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>Completed</h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <h2 className="mb-2.5 text-[0.82rem] font-semibold uppercase tracking-wider text-muted-foreground">
+              Completed
+            </h2>
+            <div className="flex flex-col gap-2.5">
               {completed.map((goal) => (
                 <GoalCard
                   key={goal._id}
@@ -492,9 +625,8 @@ export default function Goals() {
           </div>
         )}
 
-        {/* AI Study Planner */}
         <StudyPlannerCard />
-      </motion.div>
+      </PageShell>
     </>
   );
 }

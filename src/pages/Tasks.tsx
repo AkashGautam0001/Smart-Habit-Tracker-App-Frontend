@@ -2,13 +2,27 @@ import { useState, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { PlusIcon, CaretLeftIcon, CaretRightIcon, CheckCircleIcon, ArrowLeftIcon, FolderOpenIcon } from '@phosphor-icons/react';
+import {
+  PlusIcon,
+  CaretLeftIcon,
+  CaretRightIcon,
+  CheckCircleIcon,
+  ArrowLeftIcon,
+} from '@phosphor-icons/react';
 import TaskCard from '../components/tasks/TaskCard';
 import TaskForm from '../components/tasks/TaskForm';
 import { useTasks, useCreateTask, useUpdateTask, useToggleTask, useDeleteTask } from '../hooks/useTasks';
 import { useProjects } from '../hooks/useProjects';
 import { useSettings } from '../hooks/useSettings';
 import { usePlan } from '../hooks/usePlan';
+import PageShell from '@/components/shared/PageShell';
+import PageHeader from '@/components/shared/PageHeader';
+import EmptyState from '@/components/shared/EmptyState';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
 import { APP_CONFIG } from '../config/app.config';
 import type { Task } from '../types';
 
@@ -28,6 +42,20 @@ function displayDate(d: Date): string {
   if (ds === dateStr(yesterday)) return 'Yesterday';
   if (ds === dateStr(tomorrow)) return 'Tomorrow';
   return d.toLocaleDateString('en-IN', { weekday: 'short', month: 'short', day: 'numeric' });
+}
+
+function SubjectDot({ color, className }: { color: string; className?: string }) {
+  return (
+    <svg
+      width={8}
+      height={8}
+      viewBox="0 0 8 8"
+      aria-hidden
+      className={cn('shrink-0', className)}
+    >
+      <circle cx={4} cy={4} r={4} fill={color} />
+    </svg>
+  );
 }
 
 export default function Tasks() {
@@ -65,7 +93,6 @@ export default function Tasks() {
 
   const isToday = dateStr(selectedDate) === dateStr(new Date());
 
-  // Group tasks by subject; completed go to end
   const { subjectMap, incomplete, completed } = useMemo(() => {
     const incomplete = tasks.filter((t: Task) => !t.isCompleted);
     const completed = tasks.filter((t: Task) => t.isCompleted);
@@ -86,15 +113,30 @@ export default function Tasks() {
     return map;
   }, [settings.subjects]);
 
-  // Daily plan estimate
   const totalEstimated = incomplete.reduce((sum: number, t: Task) => sum + (t.estimatedPomodoros || 1), 0);
   const totalMinutes = totalEstimated * (settings.pomodoroFocusMin || 25);
   const planLabel = totalMinutes >= 60
-    ? `~${Math.floor(totalMinutes / 60)}h ${totalMinutes % 60}m · ${totalEstimated} 🍅`
-    : `~${totalMinutes}m · ${totalEstimated} 🍅`;
+    ? `~${Math.floor(totalMinutes / 60)}h ${totalMinutes % 60}m · ${totalEstimated} sessions`
+    : `~${totalMinutes}m · ${totalEstimated} sessions`;
 
   const getSubjectColor = (subject: string) =>
-    subjectColorMap[subject] ?? 'var(--color-text-muted)';
+    subjectColorMap[subject] ?? '#71717a';
+
+  const remainingCount = tasks.filter((t: Task) => !t.isCompleted).length;
+
+  const openNewTaskForm = () => {
+    setEditing(undefined);
+    setFormOpen(true);
+  };
+
+  const addTaskButton = (
+    <motion.div whileTap={{ scale: 0.95 }} className="inline-flex">
+      <Button onClick={openNewTaskForm}>
+        <PlusIcon size={16} weight="bold" />
+        Add Task
+      </Button>
+    </motion.div>
+  );
 
   return (
     <>
@@ -103,7 +145,6 @@ export default function Tasks() {
         <meta name="robots" content="noindex" />
       </Helmet>
 
-      {/* Task form modal */}
       <TaskForm
         open={formOpen}
         onClose={() => { setFormOpen(false); setEditing(undefined); }}
@@ -125,224 +166,149 @@ export default function Tasks() {
         projects={isPro ? projects : undefined}
       />
 
-      {/* Project mode: back button + project header */}
-      {projectId && currentProject && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-          <button onClick={() => navigate('/projects')} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--color-surface-hover)', border: '1px solid var(--color-border)', borderRadius: 8, color: 'var(--color-text-secondary)', cursor: 'pointer', padding: '6px 12px', fontSize: '0.82rem', fontWeight: 500 }}>
-            <ArrowLeftIcon size={14} /> Projects
-          </button>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{ width: 12, height: 12, borderRadius: '50%', background: currentProject.color }} />
-            <h1 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--color-text)' }}>{currentProject.title}</h1>
-            <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', background: 'var(--color-surface-hover)', padding: '2px 8px', borderRadius: 999 }}>
-              {tasks.filter((t: Task) => !t.isCompleted).length} remaining
-            </span>
+      <PageShell>
+        {projectId && currentProject && (
+          <div className="space-y-4">
+            <Button variant="outline" size="sm" onClick={() => navigate('/projects')}>
+              <ArrowLeftIcon size={14} />
+              Projects
+            </Button>
+
+            <PageHeader
+              title={
+                <span className="flex items-center gap-2">
+                  <SubjectDot color={currentProject.color} className="size-3" />
+                  {currentProject.title}
+                </span>
+              }
+              description={
+                <Badge variant="secondary">{remainingCount} remaining</Badge>
+              }
+              action={addTaskButton}
+            />
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Date navigation — hidden in project mode */}
-      {!projectId && <div style={{
-        alignItems: 'center', display: 'flex', gap: 12,
-        justifyContent: 'space-between', marginBottom: 20,
-      }}>
-        <div style={{ alignItems: 'center', display: 'flex', gap: 8 }}>
-          <button
-            onClick={prevDay}
-            style={{
-              alignItems: 'center', background: 'var(--color-surface)',
-              border: '1px solid var(--color-border)', borderRadius: 8,
-              color: 'var(--color-text-secondary)', cursor: 'pointer',
-              display: 'flex', minHeight: 'auto', minWidth: 'auto', padding: 6,
-            }}
-          >
-            <CaretLeftIcon size={16} weight="bold" />
-          </button>
+        {!projectId && (
+          <PageHeader
+            title={
+              <span className="flex items-center gap-2">
+                <Button variant="outline" size="icon-sm" onClick={prevDay} aria-label="Previous day">
+                  <CaretLeftIcon size={16} weight="bold" />
+                </Button>
+                {displayDate(selectedDate)}
+                {!isToday && (
+                  <Button variant="secondary" size="xs" onClick={() => setSelectedDate(new Date())}>
+                    Today
+                  </Button>
+                )}
+                <Button variant="outline" size="icon-sm" onClick={nextDay} aria-label="Next day">
+                  <CaretRightIcon size={16} weight="bold" />
+                </Button>
+              </span>
+            }
+            action={addTaskButton}
+          />
+        )}
 
-          <div style={{ alignItems: 'center', display: 'flex', gap: 8 }}>
-            <h1 style={{ color: 'var(--color-text)', fontSize: '1.25rem', fontWeight: 700 }}>
-              {displayDate(selectedDate)}
-            </h1>
-            {!isToday && (
-              <button
-                onClick={() => setSelectedDate(new Date())}
-                style={{
-                  background: 'var(--color-surface-hover)',
-                  border: '1px solid var(--color-border)',
-                  borderRadius: 6,
-                  color: 'var(--color-text-secondary)',
-                  cursor: 'pointer',
-                  fontSize: '0.72rem',
-                  fontWeight: 600,
-                  minHeight: 'auto', minWidth: 'auto',
-                  padding: '2px 8px',
-                }}
-              >
-                Today
-              </button>
-            )}
+        {isLoading && (
+          <div className="flex flex-col gap-2.5">
+            {[1, 2, 3].map((i) => (
+              <Skeleton key={i} className="h-16 rounded-xl" />
+            ))}
           </div>
+        )}
 
-          <button
-            onClick={nextDay}
-            style={{
-              alignItems: 'center', background: 'var(--color-surface)',
-              border: '1px solid var(--color-border)', borderRadius: 8,
-              color: 'var(--color-text-secondary)', cursor: 'pointer',
-              display: 'flex', minHeight: 'auto', minWidth: 'auto', padding: 6,
-            }}
-          >
-            <CaretRightIcon size={16} weight="bold" />
-          </button>
-        </div>
+        {!isLoading && tasks.length === 0 && (
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+            <EmptyState
+              icon="ListChecks"
+              title={`No tasks for ${displayDate(selectedDate).toLowerCase()}`}
+              description="Plan your session before you start."
+              action={{ label: 'Add First Task', onClick: () => setFormOpen(true) }}
+            />
+          </motion.div>
+        )}
 
-        {/* Add task */}
-        <motion.button
-          whileTap={{ scale: 0.95 }}
-          onClick={() => { setEditing(undefined); setFormOpen(true); }}
-          className="btn btn-primary"
-          style={{ gap: 6, padding: '8px 16px' }}
-        >
-          <PlusIcon size={16} weight="bold" /> Add Task
-        </motion.button>
-      </div>}
+        {!isLoading && incomplete.length > 0 && (
+          <div className="flex flex-col gap-3.5">
+            <Card size="sm">
+              <CardContent className="flex items-center justify-between py-0">
+                <span className="text-sm text-muted-foreground">Plan estimate</span>
+                <span className="text-sm font-semibold text-foreground">{planLabel}</span>
+              </CardContent>
+            </Card>
 
-      {/* Add task button for project mode */}
-      {projectId && (
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
-          <motion.button whileTap={{ scale: 0.95 }} onClick={() => { setEditing(undefined); setFormOpen(true); }} className="btn btn-primary" style={{ gap: 6, padding: '8px 16px' }}>
-            <PlusIcon size={16} weight="bold" /> Add Task
-          </motion.button>
-        </div>
-      )}
+            <AnimatePresence mode="popLayout">
+              {Array.from(subjectMap.entries()).map(([subject, subjectTasks]) => {
+                const color = getSubjectColor(subject);
+                const subjectDone = subjectTasks.filter((t) => t.isCompleted).length;
 
-      {/* Loading */}
-      {isLoading && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="card" style={{ height: 60, opacity: 0.4 }} />
-          ))}
-        </div>
-      )}
+                return (
+                  <motion.div
+                    key={subject}
+                    layout
+                    initial={{ opacity: 0, y: -6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, height: 0 }}
+                  >
+                    <Card className="overflow-hidden py-0">
+                      <div className="flex items-center gap-2 border-b border-border bg-muted/30 px-3.5 py-2.5">
+                        <SubjectDot color={color} />
+                        <span className="text-xs font-bold uppercase tracking-wider text-foreground">
+                          {subject}
+                        </span>
+                        <Badge variant="secondary" className="ml-auto">
+                          {subjectDone}/{subjectTasks.length}
+                        </Badge>
+                      </div>
 
-      {!isLoading && tasks.length === 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="card"
-          style={{ padding: '40px 24px', textAlign: 'center' }}
-        >
-          <div style={{ fontSize: '2.5rem', marginBottom: 12 }}>📋</div>
-          <h2 style={{ color: 'var(--color-text)', fontSize: '1rem', fontWeight: 600, marginBottom: 6 }}>
-            No tasks for {displayDate(selectedDate).toLowerCase()}
-          </h2>
-          <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.875rem', marginBottom: 20 }}>
-            Plan your session before you start.
-          </p>
-          <motion.button
-            whileTap={{ scale: 0.97 }}
-            onClick={() => setFormOpen(true)}
-            className="btn btn-primary"
-            style={{ display: 'inline-flex', gap: 6 }}
-          >
-            <PlusIcon size={15} weight="bold" /> Add First Task
-          </motion.button>
-        </motion.div>
-      )}
-
-      {/* Tasks by subject */}
-      {!isLoading && incomplete.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {/* Daily plan estimate bar */}
-          <div style={{
-            alignItems: 'center',
-            background: 'var(--color-surface)',
-            border: '1px solid var(--color-border)',
-            borderRadius: 8, display: 'flex',
-            fontSize: '0.8rem', gap: 6,
-            justifyContent: 'space-between',
-            padding: '8px 14px',
-          }}>
-            <span style={{ color: 'var(--color-text-secondary)' }}>Plan estimate</span>
-            <span style={{ color: 'var(--color-text)', fontWeight: 600 }}>{planLabel}</span>
-          </div>
-
-          <AnimatePresence mode="popLayout">
-            {Array.from(subjectMap.entries()).map(([subject, subjectTasks]) => {
-              const color = getSubjectColor(subject);
-              const subjectDone = subjectTasks.filter((t) => t.isCompleted).length;
-
-              return (
-                <motion.div
-                  key={subject}
-                  layout
-                  initial={{ opacity: 0, y: -6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="card"
-                  style={{ overflow: 'hidden' }}
-                >
-                  {/* Subject header */}
-                  <div style={{
-                    alignItems: 'center', background: `color-mix(in srgb, ${color} 8%, var(--color-surface))`,
-                    borderBottom: '1px solid var(--color-border)',
-                    display: 'flex', gap: 8, padding: '10px 14px',
-                  }}>
-                    <div style={{ background: color, borderRadius: '50%', height: 8, width: 8 }} />
-                    <span style={{ color, fontSize: '0.82rem', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-                      {subject}
-                    </span>
-                    <span style={{ color: 'var(--color-text-muted)', fontSize: '0.75rem', marginLeft: 'auto' }}>
-                      {subjectDone}/{subjectTasks.length}
-                    </span>
-                  </div>
-
-                  {/* Task list */}
-                  <AnimatePresence>
-                    {subjectTasks.map((task) => (
-                      <TaskCard
-                        key={task._id}
-                        task={task}
-                        subjectColor={color}
-                        onToggle={() => toggleTask.mutate(task._id)}
-                        onEdit={() => { setEditing(task); setFormOpen(true); }}
-                        onDelete={() => deleteTask.mutate(task._id)}
-                      />
-                    ))}
-                  </AnimatePresence>
-                </motion.div>
-              );
-            })}
-          </AnimatePresence>
-        </div>
-      )}
-
-      {/* Completed section */}
-      {!isLoading && completed.length > 0 && (
-        <div style={{ marginTop: 16 }}>
-          <div style={{ alignItems: 'center', display: 'flex', gap: 6, marginBottom: 10 }}>
-            <CheckCircleIcon size={16} weight="fill" color="var(--color-success)" />
-            <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.82rem', fontWeight: 600 }}>
-              Completed ({completed.length})
-            </span>
-          </div>
-
-          <div className="card" style={{ overflow: 'hidden' }}>
-            <AnimatePresence>
-              {completed.map((task) => (
-                <TaskCard
-                  key={task._id}
-                  task={task}
-                  subjectColor={getSubjectColor(task.subject)}
-                  onToggle={() => toggleTask.mutate(task._id)}
-                  onEdit={() => { setEditing(task); setFormOpen(true); }}
-                  onDelete={() => deleteTask.mutate(task._id)}
-                />
-              ))}
+                      <AnimatePresence>
+                        {subjectTasks.map((task) => (
+                          <TaskCard
+                            key={task._id}
+                            task={task}
+                            subjectColor={color}
+                            onToggle={() => toggleTask.mutate(task._id)}
+                            onEdit={() => { setEditing(task); setFormOpen(true); }}
+                            onDelete={() => deleteTask.mutate(task._id)}
+                          />
+                        ))}
+                      </AnimatePresence>
+                    </Card>
+                  </motion.div>
+                );
+              })}
             </AnimatePresence>
           </div>
-        </div>
-      )}
+        )}
+
+        {!isLoading && completed.length > 0 && (
+          <div className="mt-4 space-y-2.5">
+            <div className="flex items-center gap-1.5">
+              <CheckCircleIcon size={16} weight="fill" className="text-chart-2" />
+              <span className="text-sm font-semibold text-muted-foreground">
+                Completed ({completed.length})
+              </span>
+            </div>
+
+            <Card className="overflow-hidden py-0">
+              <AnimatePresence>
+                {completed.map((task) => (
+                  <TaskCard
+                    key={task._id}
+                    task={task}
+                    subjectColor={getSubjectColor(task.subject)}
+                    onToggle={() => toggleTask.mutate(task._id)}
+                    onEdit={() => { setEditing(task); setFormOpen(true); }}
+                    onDelete={() => deleteTask.mutate(task._id)}
+                  />
+                ))}
+              </AnimatePresence>
+            </Card>
+          </div>
+        )}
+      </PageShell>
     </>
   );
 }

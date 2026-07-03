@@ -1,11 +1,20 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Helmet } from 'react-helmet-async';
+import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CaretLeftIcon, CaretRightIcon, NotePencilIcon, LockIcon, CheckCircleIcon, ClockIcon } from '@phosphor-icons/react';
 import { useJournalEntry, useSaveJournal, useJournalHistory } from '../hooks/useJournal';
 import RichTextEditor from '../components/journal/RichTextEditor';
 import { usePlan } from '../hooks/usePlan';
 import { APP_CONFIG } from '../config/app.config';
+import PageShell from '@/components/shared/PageShell';
+import PageHeader from '@/components/shared/PageHeader';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Separator } from '@/components/ui/separator';
+import { cn } from '@/lib/utils';
 
 const FREE_CHAR_LIMIT = 500;
 
@@ -118,243 +127,233 @@ export default function Journal() {
         <meta name="robots" content="noindex" />
       </Helmet>
 
-      <div style={{ display: 'grid', gap: 24, gridTemplateColumns: isPro && history.length > 0 ? 'minmax(0,1fr) 200px' : '1fr', alignItems: 'start', maxWidth: 820 }}
-        className="journal-grid">
-        {/* ─── Main editor column ─── */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <PageShell className="max-w-[820px]">
+        <div
+          className={cn(
+            'grid items-start gap-6',
+            isPro && history.length > 0 && 'lg:grid-cols-[minmax(0,1fr)_200px]',
+          )}
+        >
+          <div className="flex flex-col gap-4">
+            <PageHeader
+              title={
+                <span className="flex w-full items-center justify-between gap-2">
+                  <Button variant="outline" size="sm" onClick={goBack} className="gap-1">
+                    <CaretLeftIcon size={14} />
+                    {!isPro && <LockIcon size={12} className="text-muted-foreground" />}
+                  </Button>
+                  <span className="flex flex-col items-center text-center">
+                    <span className="text-base font-bold">{formatDate(date)}</span>
+                    {!isToday && (
+                      <span className="mt-0.5 text-[0.72rem] text-muted-foreground">
+                        {new Date(date + 'T00:00:00').toLocaleDateString('en-IN', {
+                          weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
+                        })}
+                      </span>
+                    )}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={goForward}
+                    disabled={isToday}
+                    aria-label="Next day"
+                  >
+                    <CaretRightIcon size={14} />
+                  </Button>
+                </span>
+              }
+            />
 
-          {/* Date navigation */}
-          <div style={{ alignItems: 'center', display: 'flex', gap: 10, justifyContent: 'space-between' }}>
-            <button
-              onClick={goBack}
-              style={{
-                alignItems: 'center', background: 'var(--color-surface)',
-                border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)',
-                color: 'var(--color-text-secondary)', cursor: 'pointer',
-                display: 'flex', gap: 4, minHeight: 'auto', padding: '6px 12px', fontSize: '0.8rem',
-              }}
-            >
-              <CaretLeftIcon size={14} />
-              {!isPro && <LockIcon size={12} color="var(--color-text-muted)" />}
-            </button>
+            <AnimatePresence>
+              {proAlert && (
+                <motion.div
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                >
+                  <Card className="border-amber-500/30 bg-amber-500/5">
+                    <CardContent className="flex items-start gap-3 px-3.5 py-3">
+                      <LockIcon size={18} className="mt-0.5 shrink-0 text-amber-500" />
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold text-foreground">Past entries require Pro</p>
+                        <p className="mt-0.5 text-sm text-muted-foreground">
+                          Upgrade to browse and write in your full journal history.
+                        </p>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-2">
+                        <Button size="sm" asChild>
+                          <Link to="/upgrade">Upgrade</Link>
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          onClick={() => setProAlert(false)}
+                          aria-label="Dismiss"
+                        >
+                          ×
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
-            <div style={{ textAlign: 'center' }}>
-              <h1 style={{ color: 'var(--color-text)', fontSize: '1rem', fontWeight: 700 }}>
-                {formatDate(date)}
-              </h1>
-              {!isToday && (
-                <p style={{ color: 'var(--color-text-muted)', fontSize: '0.72rem', marginTop: 2 }}>
-                  {new Date(date + 'T00:00:00').toLocaleDateString('en-IN', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+            <Card>
+              <CardContent className="px-4 py-3">
+                <p className="mb-2.5 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  How are you feeling?
                 </p>
+                <div className="flex gap-1.5">
+                  {MOODS.map(({ value, emoji, label }) => {
+                    const selected = mood === value;
+                    return (
+                      <motion.div key={value} whileTap={{ scale: 0.9 }} className="flex-1">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          onClick={() => handleMoodClick(value)}
+                          title={label}
+                          className={cn(
+                            'h-auto w-full flex-col gap-0.5 py-2 text-xl',
+                            selected
+                              ? 'border-2 border-primary bg-primary/15 text-primary'
+                              : 'border-2 border-transparent bg-muted hover:bg-muted',
+                          )}
+                        >
+                          <span>{emoji}</span>
+                          <span
+                            className={cn(
+                              'text-[0.65rem] font-medium',
+                              selected ? 'text-primary' : 'text-muted-foreground',
+                            )}
+                          >
+                            {label}
+                          </span>
+                        </Button>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+
+            <div>
+              {isLoading ? (
+                <Skeleton className="h-[360px] rounded-xl" />
+              ) : (
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={date}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.12 }}
+                  >
+                    <RichTextEditor
+                      content={content}
+                      onChange={handleContentChange}
+                      placeholder="What happened today? What are you thinking about?"
+                      charLimit={charLimit}
+                    />
+                  </motion.div>
+                </AnimatePresence>
               )}
             </div>
 
-            <button
-              onClick={goForward}
-              disabled={isToday}
-              style={{
-                alignItems: 'center', background: 'var(--color-surface)',
-                border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)',
-                color: isToday ? 'var(--color-border)' : 'var(--color-text-secondary)',
-                cursor: isToday ? 'not-allowed' : 'pointer',
-                display: 'flex', minHeight: 'auto', padding: '6px 12px',
-              }}
-            >
-              <CaretRightIcon size={14} />
-            </button>
-          </div>
-
-          {/* Pro alert */}
-          <AnimatePresence>
-            {proAlert && (
-              <motion.div
-                initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                className="card"
-                style={{
-                  alignItems: 'flex-start', display: 'flex', gap: 12, padding: '12px 14px',
-                  background: 'color-mix(in srgb, var(--color-warning) 8%, var(--color-surface))',
-                  borderColor: 'color-mix(in srgb, var(--color-warning) 30%, transparent)',
-                }}
-              >
-                <LockIcon size={18} color="var(--color-warning)" style={{ flexShrink: 0, marginTop: 1 }} />
-                <div style={{ flex: 1 }}>
-                  <p style={{ color: 'var(--color-text)', fontSize: '0.875rem', fontWeight: 600 }}>Past entries require Pro</p>
-                  <p style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem', marginTop: 2 }}>
-                    Upgrade to browse and write in your full journal history.
-                  </p>
-                </div>
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
-                  <button className="btn btn-primary" style={{ fontSize: '0.78rem', padding: '5px 12px', minHeight: 'auto' }}
-                    onClick={() => window.location.href = '/upgrade'}>
-                    Upgrade
-                  </button>
-                  <button onClick={() => setProAlert(false)} style={{ background: 'none', border: 'none', color: 'var(--color-text-muted)', cursor: 'pointer', fontSize: '1rem', lineHeight: 1 }}>
-                    ×
-                  </button>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Mood picker */}
-          <div className="card" style={{ padding: '12px 16px' }}>
-            <p style={{ color: 'var(--color-text-muted)', fontSize: '0.75rem', fontWeight: 500, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-              How are you feeling?
-            </p>
-            <div style={{ display: 'flex', gap: 6 }}>
-              {MOODS.map(({ value, emoji, label }) => {
-                const selected = mood === value;
-                return (
-                  <motion.button
-                    key={value}
-                    whileTap={{ scale: 0.9 }}
-                    onClick={() => handleMoodClick(value)}
-                    title={label}
-                    style={{
-                      alignItems: 'center',
-                      background: selected
-                        ? 'color-mix(in srgb, var(--color-accent) 15%, var(--color-surface-hover))'
-                        : 'var(--color-surface-hover)',
-                      border: `2px solid ${selected ? 'var(--color-accent)' : 'transparent'}`,
-                      borderRadius: 'var(--radius-md)',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      flex: 1,
-                      flexDirection: 'column',
-                      fontSize: '1.3rem',
-                      gap: 3,
-                      minHeight: 'auto',
-                      padding: '8px 4px',
-                      transition: 'all 0.15s',
-                    }}
+            <AnimatePresence>
+              {saveStatus !== 'idle' && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="flex items-center gap-1.5"
+                >
+                  {saveStatus === 'saving' ? (
+                    <ClockIcon size={13} className="text-muted-foreground" />
+                  ) : (
+                    <CheckCircleIcon size={13} className="text-green-500" />
+                  )}
+                  <span
+                    className={cn(
+                      'text-[0.73rem]',
+                      saveStatus === 'saving' ? 'text-muted-foreground' : 'text-green-500',
+                    )}
                   >
-                    <span>{emoji}</span>
-                    <span style={{ color: selected ? 'var(--color-accent)' : 'var(--color-text-muted)', fontSize: '0.65rem', fontWeight: 500 }}>
-                      {label}
-                    </span>
-                  </motion.button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Editor */}
-          <div>
-            {isLoading ? (
-              <div style={{
-                background: 'var(--color-surface)',
-                border: '1px solid var(--color-border)',
-                borderRadius: 'var(--radius-lg)',
-                height: 360,
-              }}
-                className="skeleton"
-              />
-            ) : (
-              <AnimatePresence mode="wait">
-                <motion.div key={date} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.12 }}>
-                  <RichTextEditor
-                    content={content}
-                    onChange={handleContentChange}
-                    placeholder="What happened today? What are you thinking about?"
-                    charLimit={charLimit}
-                  />
+                    {saveStatus === 'saving' ? 'Saving…' : 'Saved'}
+                  </span>
                 </motion.div>
-              </AnimatePresence>
+              )}
+            </AnimatePresence>
+
+            {!isPro && (
+              <Card className="border-primary/20 bg-primary/5">
+                <CardContent className="flex items-center gap-2.5 px-3.5 py-2.5">
+                  <NotePencilIcon size={16} weight="duotone" className="shrink-0 text-primary" />
+                  <p className="flex-1 text-sm text-muted-foreground">
+                    Free plan: today&apos;s entry only, {FREE_CHAR_LIMIT}-character limit.{' '}
+                    <Link to="/upgrade" className="font-medium text-primary hover:underline">
+                      Upgrade to Pro
+                    </Link>{' '}
+                    for unlimited history and rich formatting.
+                  </p>
+                </CardContent>
+              </Card>
             )}
           </div>
 
-          {/* Save status */}
-          <AnimatePresence>
-            {saveStatus !== 'idle' && (
-              <motion.div
-                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                style={{ alignItems: 'center', display: 'flex', gap: 6 }}
-              >
-                {saveStatus === 'saving' ? (
-                  <ClockIcon size={13} color="var(--color-text-muted)" />
-                ) : (
-                  <CheckCircleIcon size={13} color="var(--color-success)" />
-                )}
-                <span style={{ color: saveStatus === 'saving' ? 'var(--color-text-muted)' : 'var(--color-success)', fontSize: '0.73rem' }}>
-                  {saveStatus === 'saving' ? 'Saving…' : 'Saved'}
-                </span>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Free plan notice */}
-          {!isPro && (
-            <div style={{
-              alignItems: 'center', display: 'flex', gap: 10,
-              background: 'color-mix(in srgb, var(--color-accent) 6%, var(--color-surface))',
-              border: '1px solid color-mix(in srgb, var(--color-accent) 20%, transparent)',
-              borderRadius: 'var(--radius-lg)',
-              padding: '10px 14px',
-            }}>
-              <NotePencilIcon size={16} weight="duotone" color="var(--color-accent)" />
-              <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.8rem', flex: 1 }}>
-                Free plan: today's entry only, {FREE_CHAR_LIMIT}-character limit.{' '}
-                <a href="/upgrade" style={{ color: 'var(--color-accent)', textDecoration: 'none', fontWeight: 500 }}>
-                  Upgrade to Pro
-                </a>{' '}
-                for unlimited history and rich formatting.
-              </p>
-            </div>
+          {isPro && history.length > 0 && (
+            <Card className="gap-0 overflow-hidden py-0">
+              <CardHeader className="border-b px-3.5 py-2.5">
+                <CardTitle className="text-sm font-semibold">Recent Entries</CardTitle>
+              </CardHeader>
+              <div className="max-h-[420px] overflow-y-auto">
+                {history.slice(0, 30).map((e, idx) => (
+                  <div key={e.date}>
+                    {idx > 0 && <Separator />}
+                    <button
+                      type="button"
+                      onClick={() => setDate(e.date)}
+                      className={cn(
+                        'flex w-full cursor-pointer items-center gap-2.5 border-none px-3.5 py-2.5 text-left transition-colors',
+                        date === e.date ? 'bg-primary/10' : 'bg-transparent hover:bg-muted/50',
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          'size-[7px] shrink-0 rounded-full',
+                          historyMap.has(e.date) ? 'bg-primary' : 'bg-border',
+                        )}
+                      />
+                      <div>
+                        <p
+                          className={cn(
+                            'text-sm font-medium',
+                            date === e.date ? 'text-primary' : 'text-foreground',
+                          )}
+                        >
+                          {formatDate(e.date)}
+                        </p>
+                        {e.mood && (
+                          <span className="text-[0.7rem]">
+                            {MOODS.find((m) => m.value === e.mood)?.emoji}
+                          </span>
+                        )}
+                      </div>
+                      {e.wordCount > 0 && (
+                        <Badge variant="secondary" className="ml-auto text-[0.68rem]">
+                          {e.wordCount}w
+                        </Badge>
+                      )}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </Card>
           )}
         </div>
-
-        {/* ─── Pro history sidebar ─── */}
-        {isPro && history.length > 0 && (
-          <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-            <div style={{ borderBottom: '1px solid var(--color-border)', padding: '10px 14px' }}>
-              <h2 style={{ color: 'var(--color-text)', fontSize: '0.85rem', fontWeight: 600 }}>Recent Entries</h2>
-            </div>
-            <div style={{ maxHeight: 420, overflowY: 'auto' }}>
-              {history.slice(0, 30).map((e) => (
-                <button
-                  key={e.date}
-                  onClick={() => setDate(e.date)}
-                  style={{
-                    alignItems: 'center',
-                    background: date === e.date ? 'color-mix(in srgb, var(--color-accent) 10%, transparent)' : 'transparent',
-                    border: 'none',
-                    borderBottom: '1px solid var(--color-border)',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    gap: 10,
-                    padding: '10px 14px',
-                    textAlign: 'left',
-                    width: '100%',
-                  }}
-                >
-                  <div style={{
-                    background: historyMap.has(e.date) ? 'var(--color-accent)' : 'var(--color-border)',
-                    borderRadius: '50%',
-                    flexShrink: 0,
-                    height: 7,
-                    width: 7,
-                  }} />
-                  <div>
-                    <p style={{ color: date === e.date ? 'var(--color-accent)' : 'var(--color-text)', fontSize: '0.8rem', fontWeight: 500 }}>
-                      {formatDate(e.date)}
-                    </p>
-                    {e.mood && (
-                      <span style={{ fontSize: '0.7rem' }}>
-                        {MOODS.find((m) => m.value === e.mood)?.emoji}
-                      </span>
-                    )}
-                  </div>
-                  {e.wordCount > 0 && (
-                    <span style={{ color: 'var(--color-text-muted)', fontSize: '0.68rem', marginLeft: 'auto' }}>
-                      {e.wordCount}w
-                    </span>
-                  )}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
+      </PageShell>
     </>
   );
 }

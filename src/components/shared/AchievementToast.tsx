@@ -1,14 +1,15 @@
+import type { ElementType } from 'react';
 import { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as Icons from '@phosphor-icons/react';
 import { useAchievementStore } from '../../store/achievementStore';
 
 const CATEGORY_COLORS: Record<string, string> = {
-  habits:     '#f97316',
-  focus:      '#6366f1',
-  tasks:      '#22c55e',
+  habits: '#f97316',
+  focus: '#6366f1',
+  tasks: '#22c55e',
   milestones: '#f59e0b',
-  special:    '#ec4899',
+  special: '#ec4899',
 };
 
 export default function AchievementToast() {
@@ -22,13 +23,13 @@ export default function AchievementToast() {
   }, [current, dequeue]);
 
   const IconEl = current
-    ? (Icons as unknown as Record<string, React.ElementType>)[current.icon] ?? Icons.Star
+    ? ((Icons as unknown as Record<string, ElementType>)[current.icon] ?? Icons.Star)
     : null;
 
   const color = current ? (CATEGORY_COLORS[current.category] ?? '#6366f1') : '#6366f1';
 
   return (
-    <div style={{ bottom: 80, pointerEvents: 'none', position: 'fixed', right: 20, zIndex: 999 }}>
+    <div className="pointer-events-none fixed right-5 bottom-20 z-[999]">
       <AnimatePresence mode="wait">
         {current && (
           <motion.div
@@ -37,45 +38,21 @@ export default function AchievementToast() {
             animate={{ opacity: 1, x: 0, scale: 1 }}
             exit={{ opacity: 0, x: 60, scale: 0.9 }}
             transition={{ type: 'spring', stiffness: 300, damping: 26 }}
-            style={{
-              background: 'var(--color-surface)',
-              border: `1px solid ${color}60`,
-              borderRadius: 'var(--radius-lg)',
-              boxShadow: `0 4px 24px ${color}25, var(--shadow-lg)`,
-              display: 'flex',
-              gap: 12,
-              maxWidth: 300,
-              padding: '14px 16px',
-              pointerEvents: 'auto',
-            }}
+            className="pointer-events-auto flex max-w-75 gap-3 rounded-lg border bg-card p-4 shadow-lg border-(--ach-c)/40 shadow-[0_4px_24px_color-mix(in_srgb,var(--ach-c)_15%,transparent)]"
+            style={{ '--ach-c': color } as React.CSSProperties}
           >
-            {/* Icon circle */}
-            <div style={{
-              alignItems: 'center',
-              background: `color-mix(in srgb, ${color} 15%, transparent)`,
-              borderRadius: '50%',
-              display: 'flex',
-              flexShrink: 0,
-              height: 44,
-              justifyContent: 'center',
-              width: 44,
-            }}>
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--ach-c)_15%,transparent)]">
               {IconEl && <IconEl size={22} weight="duotone" color={color} />}
             </div>
 
-            {/* Text */}
-            <div style={{ minWidth: 0 }}>
-              <div style={{ color: color, fontSize: '0.68rem', fontWeight: 700, letterSpacing: '0.08em', marginBottom: 2, textTransform: 'uppercase' }}>
+            <div className="min-w-0">
+              <div className="mb-0.5 text-[0.68rem] font-bold tracking-widest uppercase text-(--ach-c)">
                 Achievement Unlocked!
               </div>
-              <div style={{ color: 'var(--color-text)', fontSize: '0.9rem', fontWeight: 600 }}>
-                {current.title}
-              </div>
-              <div style={{ color: 'var(--color-text-muted)', fontSize: '0.75rem', marginTop: 2 }}>
-                {current.description}
-              </div>
+              <div className="text-sm font-semibold text-foreground">{current.title}</div>
+              <div className="mt-0.5 text-xs text-muted-foreground">{current.description}</div>
               {current.xpReward > 0 && (
-                <div style={{ color: '#f59e0b', fontSize: '0.72rem', fontWeight: 700, marginTop: 4 }}>
+                <div className="mt-1 text-[0.72rem] font-bold text-chart-3">
                   +{current.xpReward} XP bonus
                 </div>
               )}

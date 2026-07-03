@@ -1,4 +1,8 @@
 import type { PomodoroSession } from '../../types';
+import { TimerIcon } from '@phosphor-icons/react';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 
 interface Props {
   session: PomodoroSession;
@@ -9,33 +13,30 @@ export default function SessionCard({ session }: Props) {
   const time = start.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
 
   return (
-    <div style={{
-      alignItems: 'center', display: 'flex', gap: 12,
-      padding: '10px 14px',
-      borderBottom: '1px solid var(--color-border)',
-    }}>
-      <span style={{ fontSize: '1rem' }}>🍅</span>
+    <Card
+      size="sm"
+      className="flex-row items-center gap-3 rounded-none border-0 border-b border-border bg-transparent py-2.5 shadow-none ring-0 last:border-b-0"
+    >
+      <TimerIcon size={18} weight="duotone" className="shrink-0 text-primary" />
 
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ color: 'var(--color-text)', fontSize: '0.875rem', fontWeight: 500 }}>
+      <CardContent className="flex min-w-0 flex-1 flex-col gap-0 p-0">
+        <div className="truncate text-sm font-medium text-foreground">
           {session.subject || 'General Focus'}
         </div>
-        <div style={{ color: 'var(--color-text-muted)', fontSize: '0.75rem', marginTop: 1 }}>
+        <div className="text-xs text-muted-foreground">
           {time} · {session.duration ?? 0} min
         </div>
-      </div>
+      </CardContent>
 
-      <div style={{
-        background: session.wasCompleted
-          ? 'color-mix(in srgb, var(--color-success) 12%, transparent)'
-          : 'color-mix(in srgb, var(--color-text-muted) 10%, transparent)',
-        borderRadius: 6,
-        color: session.wasCompleted ? 'var(--color-success)' : 'var(--color-text-muted)',
-        fontSize: '0.7rem', fontWeight: 600,
-        padding: '2px 8px',
-      }}>
+      <Badge
+        variant={session.wasCompleted ? 'default' : 'secondary'}
+        className={cn(
+          session.wasCompleted &&
+            'border-transparent bg-green-500/10 text-green-600 dark:text-green-400',
+        )}
+      >
         {session.wasCompleted ? 'Done' : 'Stopped'}
-      </div>
-    </div>
+      </Badge>
+    </Card>
   );
 }

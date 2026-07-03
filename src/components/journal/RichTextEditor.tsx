@@ -4,10 +4,21 @@ import Placeholder from '@tiptap/extension-placeholder';
 import CharacterCount from '@tiptap/extension-character-count';
 import { useEffect, useRef } from 'react';
 import {
-  TextB, TextItalic, TextStrikethrough, TextHTwo, TextHThree,
-  ListBullets, ListNumbers, Quotes, Minus,
-  ArrowCounterClockwiseIcon, ArrowClockwiseIcon,
+  TextB,
+  TextItalic,
+  TextStrikethrough,
+  TextHTwo,
+  TextHThree,
+  ListBullets,
+  ListNumbers,
+  Quotes,
+  Minus,
+  ArrowCounterClockwiseIcon,
+  ArrowClockwiseIcon,
 } from '@phosphor-icons/react';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
+import { cn } from '@/lib/utils';
 
 interface ToolbarBtnProps {
   onClick: () => void;
@@ -17,46 +28,32 @@ interface ToolbarBtnProps {
   children: React.ReactNode;
 }
 
-function ToolbarBtn({ onClick, active, disabled, title, children }: ToolbarBtnProps) {
+function ToolbarBtn({
+  onClick,
+  active,
+  disabled,
+  title,
+  children,
+}: ToolbarBtnProps) {
   return (
-    <button
-      onMouseDown={(e) => { e.preventDefault(); onClick(); }}
-      disabled={disabled}
+    <Button
+      type="button"
+      variant="ghost"
+      size="icon-sm"
       title={title}
-      style={{
-        alignItems: 'center',
-        background: active
-          ? 'color-mix(in srgb, var(--color-accent) 18%, transparent)'
-          : 'transparent',
-        border: 'none',
-        borderRadius: 6,
-        color: active
-          ? 'var(--color-accent)'
-          : disabled
-          ? 'var(--color-border)'
-          : 'var(--color-text-secondary)',
-        cursor: disabled ? 'not-allowed' : 'pointer',
-        display: 'flex',
-        height: 30,
-        justifyContent: 'center',
-        padding: '0 7px',
-        transition: 'background 0.12s, color 0.12s',
+      disabled={disabled}
+      onMouseDown={(e) => {
+        e.preventDefault();
+        onClick();
       }}
+      className={cn(
+        'size-[30px]',
+        active && 'bg-primary/18 text-primary hover:bg-primary/18 hover:text-primary',
+        disabled && 'text-border',
+      )}
     >
       {children}
-    </button>
-  );
-}
-
-function Divider() {
-  return (
-    <div style={{
-      background: 'var(--color-border)',
-      height: 20,
-      margin: '0 4px',
-      width: 1,
-      flexShrink: 0,
-    }} />
+    </Button>
   );
 }
 
@@ -68,34 +65,45 @@ interface Props {
   readOnly?: boolean;
 }
 
-export default function RichTextEditor({ content, onChange, placeholder, charLimit, readOnly }: Props) {
+export default function RichTextEditor({
+  content,
+  onChange,
+  placeholder,
+  charLimit,
+  readOnly,
+}: Props) {
   const onChangeRef = useRef(onChange);
   // eslint-disable-next-line react-hooks/refs
-  onChangeRef.current = onChange; // stable callback ref pattern — safe, not used in render
+  onChangeRef.current = onChange;
   const suppressRef = useRef(false);
 
   const editor = useEditor({
     extensions: [
       StarterKit.configure({ heading: { levels: [2, 3] } }),
-      Placeholder.configure({ placeholder: placeholder ?? 'Write about your day…' }),
+      Placeholder.configure({
+        placeholder: placeholder ?? 'Write about your day…',
+      }),
       CharacterCount.configure(charLimit !== undefined ? { limit: charLimit } : {}),
     ],
     content,
     editable: !readOnly,
   });
 
-  // Wire up update event manually so onChange stays current
   useEffect(() => {
     if (!editor) return;
     const handler = () => {
-      if (suppressRef.current) { suppressRef.current = false; return; }
+      if (suppressRef.current) {
+        suppressRef.current = false;
+        return;
+      }
       onChangeRef.current(editor.getHTML());
     };
     editor.on('update', handler);
-    return () => { editor.off('update', handler); };
+    return () => {
+      editor.off('update', handler);
+    };
   }, [editor]);
 
-  // Sync when content changes externally (entry loaded or date switch)
   useEffect(() => {
     if (editor && !editor.isDestroyed) {
       if (editor.getHTML() !== content) {
@@ -112,104 +120,121 @@ export default function RichTextEditor({ content, onChange, placeholder, charLim
   const atLimit = charLimit !== undefined && charCount >= charLimit;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column' }}>
-      {/* Toolbar */}
+    <div className="flex flex-col">
       {!readOnly && (
-        <div style={{
-          alignItems: 'center',
-          background: 'var(--color-surface)',
-          border: '1px solid var(--color-border)',
-          borderBottom: 'none',
-          borderRadius: 'var(--radius-lg) var(--radius-lg) 0 0',
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: 2,
-          padding: '6px 8px',
-        }}>
-          <ToolbarBtn title="Undo (Ctrl+Z)" onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo()}>
+        <div className="flex flex-wrap items-center gap-0.5 rounded-t-lg border border-b-0 border-border bg-card px-2 py-1.5">
+          <ToolbarBtn
+            title="Undo (Ctrl+Z)"
+            onClick={() => editor.chain().focus().undo().run()}
+            disabled={!editor.can().undo()}
+          >
             <ArrowCounterClockwiseIcon size={15} />
           </ToolbarBtn>
-          <ToolbarBtn title="Redo (Ctrl+Y)" onClick={() => editor.chain().focus().redo().run()} disabled={!editor.can().redo()}>
+          <ToolbarBtn
+            title="Redo (Ctrl+Y)"
+            onClick={() => editor.chain().focus().redo().run()}
+            disabled={!editor.can().redo()}
+          >
             <ArrowClockwiseIcon size={15} />
           </ToolbarBtn>
 
-          <Divider />
+          <Separator orientation="vertical" className="mx-1 h-5" />
 
-          <ToolbarBtn title="Bold (Ctrl+B)" onClick={() => editor.chain().focus().toggleBold().run()} active={editor.isActive('bold')}>
+          <ToolbarBtn
+            title="Bold (Ctrl+B)"
+            onClick={() => editor.chain().focus().toggleBold().run()}
+            active={editor.isActive('bold')}
+          >
             <TextB size={15} weight="bold" />
           </ToolbarBtn>
-          <ToolbarBtn title="Italic (Ctrl+I)" onClick={() => editor.chain().focus().toggleItalic().run()} active={editor.isActive('italic')}>
+          <ToolbarBtn
+            title="Italic (Ctrl+I)"
+            onClick={() => editor.chain().focus().toggleItalic().run()}
+            active={editor.isActive('italic')}
+          >
             <TextItalic size={15} />
           </ToolbarBtn>
-          <ToolbarBtn title="Strikethrough" onClick={() => editor.chain().focus().toggleStrike().run()} active={editor.isActive('strike')}>
+          <ToolbarBtn
+            title="Strikethrough"
+            onClick={() => editor.chain().focus().toggleStrike().run()}
+            active={editor.isActive('strike')}
+          >
             <TextStrikethrough size={15} />
           </ToolbarBtn>
 
-          <Divider />
+          <Separator orientation="vertical" className="mx-1 h-5" />
 
-          <ToolbarBtn title="Heading 2" onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} active={editor.isActive('heading', { level: 2 })}>
+          <ToolbarBtn
+            title="Heading 2"
+            onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+            active={editor.isActive('heading', { level: 2 })}
+          >
             <TextHTwo size={15} />
           </ToolbarBtn>
-          <ToolbarBtn title="Heading 3" onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} active={editor.isActive('heading', { level: 3 })}>
+          <ToolbarBtn
+            title="Heading 3"
+            onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+            active={editor.isActive('heading', { level: 3 })}
+          >
             <TextHThree size={15} />
           </ToolbarBtn>
 
-          <Divider />
+          <Separator orientation="vertical" className="mx-1 h-5" />
 
-          <ToolbarBtn title="Bullet list" onClick={() => editor.chain().focus().toggleBulletList().run()} active={editor.isActive('bulletList')}>
+          <ToolbarBtn
+            title="Bullet list"
+            onClick={() => editor.chain().focus().toggleBulletList().run()}
+            active={editor.isActive('bulletList')}
+          >
             <ListBullets size={15} />
           </ToolbarBtn>
-          <ToolbarBtn title="Ordered list" onClick={() => editor.chain().focus().toggleOrderedList().run()} active={editor.isActive('orderedList')}>
+          <ToolbarBtn
+            title="Ordered list"
+            onClick={() => editor.chain().focus().toggleOrderedList().run()}
+            active={editor.isActive('orderedList')}
+          >
             <ListNumbers size={15} />
           </ToolbarBtn>
 
-          <Divider />
+          <Separator orientation="vertical" className="mx-1 h-5" />
 
-          <ToolbarBtn title="Blockquote" onClick={() => editor.chain().focus().toggleBlockquote().run()} active={editor.isActive('blockquote')}>
+          <ToolbarBtn
+            title="Blockquote"
+            onClick={() => editor.chain().focus().toggleBlockquote().run()}
+            active={editor.isActive('blockquote')}
+          >
             <Quotes size={15} />
           </ToolbarBtn>
-          <ToolbarBtn title="Horizontal rule" onClick={() => editor.chain().focus().setHorizontalRule().run()}>
+          <ToolbarBtn
+            title="Horizontal rule"
+            onClick={() => editor.chain().focus().setHorizontalRule().run()}
+          >
             <Minus size={15} />
           </ToolbarBtn>
         </div>
       )}
 
-      {/* Editor area */}
       <div
-        className="journal-editor"
-        style={{
-          background: 'var(--color-surface)',
-          border: '1px solid var(--color-border)',
-          borderRadius: readOnly
-            ? 'var(--radius-lg)'
-            : '0 0 var(--radius-lg) var(--radius-lg)',
-          cursor: readOnly ? 'default' : 'text',
-          minHeight: 300,
-          padding: '14px 16px',
-        }}
+        className={cn(
+          'min-h-[300px] border border-border bg-card px-4 py-3.5',
+          readOnly ? 'cursor-default rounded-lg' : 'cursor-text rounded-b-lg',
+        )}
         onClick={() => !readOnly && editor.chain().focus().run()}
       >
         <EditorContent editor={editor} />
       </div>
 
-      {/* Footer */}
-      <div style={{
-        alignItems: 'center',
-        display: 'flex',
-        gap: 8,
-        justifyContent: 'space-between',
-        marginTop: 8,
-        padding: '0 2px',
-      }}>
-        <span style={{ color: 'var(--color-text-muted)', fontSize: '0.73rem' }}>
+      <div className="mt-2 flex items-center justify-between gap-2 px-0.5">
+        <span className="text-[0.73rem] text-muted-foreground">
           {wordCount} word{wordCount !== 1 ? 's' : ''}
         </span>
         {charLimit !== undefined && (
-          <span style={{
-            color: atLimit ? 'var(--color-danger)' : 'var(--color-text-muted)',
-            fontSize: '0.73rem',
-            fontVariantNumeric: 'tabular-nums',
-          }}>
+          <span
+            className={cn(
+              'text-[0.73rem] tabular-nums',
+              atLimit ? 'text-destructive' : 'text-muted-foreground',
+            )}
+          >
             {charCount} / {charLimit} chars
             {atLimit && ' · Upgrade for unlimited'}
           </span>

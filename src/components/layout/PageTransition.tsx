@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { ReactNode } from 'react';
+import { cn } from '@/lib/utils';
 
 interface Props {
   children: ReactNode;
@@ -7,9 +8,9 @@ interface Props {
 }
 
 const variants = {
-  initial:  { opacity: 0, y: 6 },
-  animate:  { opacity: 1, y: 0 },
-  exit:     { opacity: 0, y: -6 },
+  initial: { opacity: 0, y: 6 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -6 },
 };
 
 export default function PageTransition({ children, className }: Props) {
@@ -20,8 +21,7 @@ export default function PageTransition({ children, className }: Props) {
       animate="animate"
       exit="exit"
       transition={{ duration: 0.18, ease: 'easeOut' }}
-      className={className}
-      style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
+      className={cn('flex flex-1 flex-col', className)}
     >
       {children}
     </motion.div>
