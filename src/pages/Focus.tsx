@@ -208,23 +208,52 @@ export default function Focus() {
       <PageShell>
         <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,380px)]">
           <div className="flex flex-col gap-5">
-            {/* Phase tabs */}
-            <div className="flex items-center gap-1 overflow-hidden rounded-xl border border-border bg-card p-1.5">
-              {(['focus', 'short_break', 'long_break'] as const).map((p) => (
-                <button
-                  key={p}
-                  type="button"
-                  disabled={timer.isRunning}
-                  className={cn(
-                    'flex-1 rounded-lg px-2 py-2 text-[0.82rem] font-semibold transition-all duration-200',
-                    'disabled:cursor-not-allowed disabled:opacity-60',
-                    phaseTabClass(p, timer.phase === p),
-                  )}
-                  onClick={() => handleTabSwitch(p)}
+            {/* Phase tabs + subject + focus mode */}
+            <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card p-1.5">
+              <div className="flex items-center gap-1">
+                {(['focus', 'short_break', 'long_break'] as const).map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    disabled={timer.isRunning}
+                    className={cn(
+                      'rounded-lg px-3 py-1.5 text-[0.78rem] font-semibold whitespace-nowrap transition-all duration-200',
+                      'disabled:cursor-not-allowed disabled:opacity-60',
+                      phaseTabClass(p, timer.phase === p),
+                    )}
+                    onClick={() => handleTabSwitch(p)}
+                  >
+                    {PHASE_LABELS[p]}
+                  </button>
+                ))}
+              </div>
+
+              <div className="ml-auto flex flex-1 items-center justify-end gap-2 sm:flex-none">
+                <Select
+                  value={timer.subject ?? NONE_VALUE}
+                  onValueChange={(v) => timer.setTask(timer.taskId, v === NONE_VALUE ? null : v)}
                 >
-                  {PHASE_LABELS[p]}
-                </button>
-              ))}
+                  <SelectTrigger size="sm" className="min-w-28 max-w-40" aria-label="Select subject">
+                    <BookOpenIcon size={13} className="shrink-0 text-muted-foreground" />
+                    <SelectValue placeholder="No subject" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={NONE_VALUE}>No subject</SelectItem>
+                    {settings.subjects.map((s) => (
+                      <SelectItem key={s.id} value={s.label}>{s.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Button
+                  size="sm"
+                  className="gap-1.5 bg-linear-to-r from-primary to-[#8b5cf6] hover:opacity-90"
+                  onClick={() => setFocusMode(true)}
+                >
+                  <CornersOutIcon size={14} />
+                  Focus Mode
+                </Button>
+              </div>
             </div>
 
             {/* Timer card */}
@@ -278,66 +307,34 @@ export default function Focus() {
               </CardContent>
             </Card>
 
-            {/* Subject / task / focus-mode row */}
-            <Card>
-              <CardContent className="flex flex-col gap-3 px-4 py-4">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                  <div className="flex flex-1 items-center gap-2">
-                    <BookOpenIcon size={16} className="shrink-0 text-muted-foreground" />
-                    <Select
-                      value={timer.subject ?? NONE_VALUE}
-                      onValueChange={(v) => timer.setTask(timer.taskId, v === NONE_VALUE ? null : v)}
-                    >
-                      <SelectTrigger className="w-full flex-1" aria-label="Select subject">
-                        <SelectValue placeholder="No subject" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value={NONE_VALUE}>No subject</SelectItem>
-                        {settings.subjects.map((s) => (
-                          <SelectItem key={s.id} value={s.label}>{s.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <motion.div whileTap={{ scale: 0.95 }}>
-                    <Button
-                      className="w-full gap-1.5 bg-linear-to-r from-primary to-[#8b5cf6] hover:opacity-90 sm:w-auto"
-                      onClick={() => setFocusMode(true)}
-                    >
-                      <CornersOutIcon size={16} />
-                      Focus Mode
-                    </Button>
-                  </motion.div>
-                </div>
-
-                {incompleteTasks.length > 0 && (
-                  <div className="flex items-center gap-2">
-                    <ListChecksIcon size={16} className="shrink-0 text-muted-foreground" />
-                    <Select
-                      value={timer.taskId ?? NONE_VALUE}
-                      onValueChange={(v) => {
-                        if (v === NONE_VALUE) { timer.setTask(null, timer.subject); return; }
-                        const task = incompleteTasks.find((t) => t._id === v);
-                        timer.setTask(v, task?.subject ?? null);
-                      }}
-                    >
-                      <SelectTrigger className="w-full flex-1" aria-label="Link to task">
-                        <SelectValue placeholder="No task linked" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value={NONE_VALUE}>No task linked</SelectItem>
-                        {incompleteTasks.map((t: Task) => (
-                          <SelectItem key={t._id} value={t._id}>
-                            {t.subject ? `[${t.subject}] ` : ''}{t.title}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            {/* Task link row */}
+            {incompleteTasks.length > 0 && (
+              <Card>
+                <CardContent className="flex items-center gap-2 px-4 py-3">
+                  <ListChecksIcon size={16} className="shrink-0 text-muted-foreground" />
+                  <Select
+                    value={timer.taskId ?? NONE_VALUE}
+                    onValueChange={(v) => {
+                      if (v === NONE_VALUE) { timer.setTask(null, timer.subject); return; }
+                      const task = incompleteTasks.find((t) => t._id === v);
+                      timer.setTask(v, task?.subject ?? null);
+                    }}
+                  >
+                    <SelectTrigger className="w-full flex-1" aria-label="Link to task">
+                      <SelectValue placeholder="No task linked" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={NONE_VALUE}>No task linked</SelectItem>
+                      {incompleteTasks.map((t: Task) => (
+                        <SelectItem key={t._id} value={t._id}>
+                          {t.subject ? `[${t.subject}] ` : ''}{t.title}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </CardContent>
+              </Card>
+            )}
           </div>
 
           {/* Right column */}

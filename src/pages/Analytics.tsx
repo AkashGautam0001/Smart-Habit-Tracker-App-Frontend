@@ -10,7 +10,8 @@ import { usePlan } from '../hooks/usePlan';
 import HeatmapGrid from '../components/analytics/HeatmapGrid';
 import SubjectDonut from '../components/analytics/SubjectDonut';
 import BestHoursChart from '../components/analytics/BestHoursChart';
-import WeeklyReviewCard from '../components/ai/WeeklyReviewCard';
+import HabitScoreCard from '../components/analytics/HabitScoreCard';
+import WeeklyReviewDialog from '../components/ai/WeeklyReviewDialog';
 import PageShell from '@/components/shared/PageShell';
 import PageHeader from '@/components/shared/PageHeader';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -205,6 +206,12 @@ export default function Analytics() {
   const summary = rangeQ.data?.summary;
   const daily   = rangeQ.data?.daily ?? [];
 
+  const habitRates = habitStatsQ.data?.habits ?? [];
+  const avgRate = habitRates.length
+    ? Math.round(habitRates.reduce((s, h) => s + h.rate, 0) / habitRates.length)
+    : 0;
+  const habitScore = Math.round((summary?.avgHabitsPct ?? 0) * 0.6 + avgRate * 0.4);
+
   // XAxis interval for range chart
   const xInterval = rangeDays <= 7 ? 0 : rangeDays <= 30 ? 4 : rangeDays <= 90 ? 12 : 30;
   const xKey = rangeDays <= 7 ? 'label' : 'shortLabel';
@@ -228,7 +235,7 @@ export default function Analytics() {
         <meta name="robots" content="noindex" />
       </Helmet>
 
-      <PageShell className="max-w-[900px]">
+      <PageShell>
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
@@ -263,199 +270,209 @@ export default function Analytics() {
             }
           />
 
-          {/* ── Stats row ── */}
-          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-            <StatCard
-              label="Pomodoros"
-              value={summary?.totalSessions ?? '—'}
-              icon={<TimerIcon size={18} weight="duotone" />}
-              sub={`in ${rangeDays} days`}
-            />
-            <StatCard
-              label="Focus Time"
-              value={summary ? fmtTime(summary.totalMinutes) : '—'}
-              icon={<TrendUpIcon size={18} weight="duotone" />}
-              sub={summary && summary.totalSessions > 0 ? `avg ${fmtTime(Math.round(summary.totalMinutes / summary.totalSessions))}/session` : undefined}
-            />
-            <StatCard
-              label="Avg Habits"
-              value={summary ? `${summary.avgHabitsPct}%` : '—'}
-              icon={<CheckCircleIcon size={18} weight="duotone" />}
-              sub="daily completion"
-            />
-            <StatCard
-              label="Streak"
-              value={rangeQ.isLoading ? '—' : `${rangeDays}d`}
-              icon={<FlameIcon size={18} weight="duotone" />}
-              sub="current range"
-            />
-          </div>
+          <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,340px)]">
+            {/* ── Left column ── */}
+            <div className="space-y-5">
+              {/* Stats row */}
+              <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+                <StatCard
+                  label="Pomodoros"
+                  value={summary?.totalSessions ?? '—'}
+                  icon={<TimerIcon size={18} weight="duotone" />}
+                  sub={`in ${rangeDays} days`}
+                />
+                <StatCard
+                  label="Focus Time"
+                  value={summary ? fmtTime(summary.totalMinutes) : '—'}
+                  icon={<TrendUpIcon size={18} weight="duotone" />}
+                  sub={summary && summary.totalSessions > 0 ? `avg ${fmtTime(Math.round(summary.totalMinutes / summary.totalSessions))}/session` : undefined}
+                />
+                <StatCard
+                  label="Avg Habits"
+                  value={summary ? `${summary.avgHabitsPct}%` : '—'}
+                  icon={<CheckCircleIcon size={18} weight="duotone" />}
+                  sub="daily completion"
+                />
+                <StatCard
+                  label="Streak"
+                  value={rangeQ.isLoading ? '—' : `${rangeDays}d`}
+                  icon={<FlameIcon size={18} weight="duotone" />}
+                  sub="current range"
+                />
+              </div>
 
-          {/* ── Daily activity chart ── */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Daily Activity</CardTitle>
-              <CardDescription>Habits completion % and focus minutes</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {rangeQ.isLoading ? (
-                <Skeleton className="h-[130px] w-full" />
-              ) : daily.length === 0 ? (
-                <div className="flex h-[130px] items-center justify-center text-sm text-muted-foreground">
-                  No data for this period
-                </div>
-              ) : (
-                <ResponsiveContainer width="100%" height={130}>
-                  <BarChart data={daily} barGap={3} barCategoryGap="22%">
-                    <XAxis
-                      dataKey={xKey}
-                      tick={{ fill: 'var(--muted-foreground)', fontSize: 11 }}
-                      axisLine={false}
-                      tickLine={false}
-                      interval={xInterval}
-                    />
-                    <YAxis hide domain={[0, 100]} />
-                    <Tooltip content={<RangeTooltip />} cursor={{ fill: 'rgba(255,255,255,0.03)', radius: 4 }} />
-                    <Bar dataKey="habitsPct" name="Habits %" radius={[3, 3, 0, 0]} maxBarSize={20}>
-                      {daily.map((d, i) => (
-                        <Cell
-                          key={i}
-                          fill={d.date === today ? 'var(--primary)' : d.habitsPct > 0 ? 'color-mix(in oklch, var(--primary) 50%, transparent)' : 'var(--muted)'}
-                        />
-                      ))}
-                    </Bar>
-                    <Bar dataKey="focusMinutes" name="Focus min" radius={[3, 3, 0, 0]} maxBarSize={20}>
-                      {daily.map((d, i) => (
-                        <Cell
-                          key={i}
-                          fill={d.date === today ? '#22c55e' : d.focusMinutes > 0 ? '#22c55e50' : 'var(--muted)'}
-                        />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* ── Pro analytics section ── */}
-          {!canDoAdvanced ? (
-            <ProTeaser onUpgrade={() => navigate('/upgrade')} />
-          ) : (
-            <>
-              {/* Heatmap */}
+              {/* Daily activity chart */}
               <Card>
-                <CardHeader className="flex-row flex-wrap items-center justify-between gap-2">
-                  <div>
-                    <CardTitle>Activity Heatmap</CardTitle>
-                    <CardDescription>Habits + focus sessions, daily</CardDescription>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="icon-sm"
-                      onClick={() => setHeatmapYear((y) => y - 1)}
-                    >
-                      <ArrowLeftIcon size={14} />
-                    </Button>
-                    <span className="min-w-10 text-center text-sm font-semibold">{heatmapYear}</span>
-                    <Button
-                      variant="outline"
-                      size="icon-sm"
-                      onClick={() => setHeatmapYear((y) => Math.min(y + 1, new Date().getFullYear()))}
-                      disabled={heatmapYear >= new Date().getFullYear()}
-                    >
-                      <ArrowRightIcon size={14} />
-                    </Button>
-                  </div>
+                <CardHeader>
+                  <CardTitle>Daily Activity</CardTitle>
+                  <CardDescription>Habits completion % and focus minutes</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {heatmapQ.isLoading ? (
-                    <Skeleton className="h-[120px] w-full" />
+                  {rangeQ.isLoading ? (
+                    <Skeleton className="h-[130px] w-full" />
+                  ) : daily.length === 0 ? (
+                    <div className="flex h-[130px] items-center justify-center text-sm text-muted-foreground">
+                      No data for this period
+                    </div>
                   ) : (
-                    <HeatmapGrid days={heatmapQ.data?.days ?? []} year={heatmapYear} />
+                    <ResponsiveContainer width="100%" height={150}>
+                      <BarChart data={daily} barGap={3} barCategoryGap="22%">
+                        <XAxis
+                          dataKey={xKey}
+                          tick={{ fill: 'var(--muted-foreground)', fontSize: 11 }}
+                          axisLine={false}
+                          tickLine={false}
+                          interval={xInterval}
+                        />
+                        <YAxis hide domain={[0, 100]} />
+                        <Tooltip content={<RangeTooltip />} cursor={{ fill: 'rgba(255,255,255,0.03)', radius: 4 }} />
+                        <Bar dataKey="habitsPct" name="Habits %" radius={[3, 3, 0, 0]} maxBarSize={20}>
+                          {daily.map((d, i) => (
+                            <Cell
+                              key={i}
+                              fill={d.date === today ? 'var(--primary)' : d.habitsPct > 0 ? 'color-mix(in oklch, var(--primary) 50%, transparent)' : 'var(--muted)'}
+                            />
+                          ))}
+                        </Bar>
+                        <Bar dataKey="focusMinutes" name="Focus min" radius={[3, 3, 0, 0]} maxBarSize={20}>
+                          {daily.map((d, i) => (
+                            <Cell
+                              key={i}
+                              fill={d.date === today ? '#22c55e' : d.focusMinutes > 0 ? '#22c55e50' : 'var(--muted)'}
+                            />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
                   )}
                 </CardContent>
               </Card>
 
-              {/* Subject donut + Best hours */}
-              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Subject Breakdown</CardTitle>
-                    <CardDescription>Time per subject in range</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {subjectsQ.isLoading ? (
-                      <Skeleton className="h-[200px] w-full" />
-                    ) : (
-                      <SubjectDonut
-                        subjects={subjectsQ.data?.subjects ?? []}
-                        totalMinutes={subjectsQ.data?.totalMinutes ?? 0}
-                      />
-                    )}
-                  </CardContent>
-                </Card>
+              {!canDoAdvanced ? (
+                <ProTeaser onUpgrade={() => navigate('/upgrade')} />
+              ) : (
+                <>
+                  {/* Heatmap */}
+                  <Card>
+                    <CardHeader className="flex-row flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <CardTitle>Activity Heatmap</CardTitle>
+                        <CardDescription>Habits + focus sessions, daily</CardDescription>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="icon-sm"
+                          onClick={() => setHeatmapYear((y) => y - 1)}
+                        >
+                          <ArrowLeftIcon size={14} />
+                        </Button>
+                        <span className="min-w-10 text-center text-sm font-semibold">{heatmapYear}</span>
+                        <Button
+                          variant="outline"
+                          size="icon-sm"
+                          onClick={() => setHeatmapYear((y) => Math.min(y + 1, new Date().getFullYear()))}
+                          disabled={heatmapYear >= new Date().getFullYear()}
+                        >
+                          <ArrowRightIcon size={14} />
+                        </Button>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      {heatmapQ.isLoading ? (
+                        <Skeleton className="h-[120px] w-full" />
+                      ) : (
+                        <HeatmapGrid days={heatmapQ.data?.days ?? []} year={heatmapYear} />
+                      )}
+                    </CardContent>
+                  </Card>
 
+                  {/* Subject donut + Best hours */}
+                  <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Subject Breakdown</CardTitle>
+                        <CardDescription>Time per subject in range</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        {subjectsQ.isLoading ? (
+                          <Skeleton className="h-[200px] w-full" />
+                        ) : (
+                          <SubjectDonut
+                            subjects={subjectsQ.data?.subjects ?? []}
+                            totalMinutes={subjectsQ.data?.totalMinutes ?? 0}
+                          />
+                        )}
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Best Focus Hours</CardTitle>
+                        <CardDescription>When you focus most (all-time)</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        {hoursQ.isLoading ? (
+                          <Skeleton className="h-[180px] w-full" />
+                        ) : (
+                          <BestHoursChart hours={hoursQ.data?.hours ?? []} />
+                        )}
+                      </CardContent>
+                    </Card>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* ── Right column ── */}
+            {canDoAdvanced && (
+              <div className="flex flex-col gap-4">
+                <WeeklyReviewDialog date={today} />
+
+                <HabitScoreCard score={habitScore} />
+
+                {/* Per-habit completion rates */}
                 <Card>
                   <CardHeader>
-                    <CardTitle>Best Focus Hours</CardTitle>
-                    <CardDescription>When you focus most (all-time)</CardDescription>
+                    <CardTitle>Habit Completion Rates</CardTitle>
+                    <CardDescription>Days completed in the selected range</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    {hoursQ.isLoading ? (
-                      <Skeleton className="h-[180px] w-full" />
+                    {habitStatsQ.isLoading ? (
+                      <div className="flex flex-col gap-2.5">
+                        {[1, 2, 3].map((i) => <Skeleton key={i} className="h-10 w-full" />)}
+                      </div>
+                    ) : habitRates.length === 0 ? (
+                      <div className="py-5 text-center text-sm text-muted-foreground">
+                        No habits tracked yet
+                      </div>
                     ) : (
-                      <BestHoursChart hours={hoursQ.data?.hours ?? []} />
+                      <div className="flex flex-col gap-2.5">
+                        {habitRates.map((h) => (
+                          <div key={h._id} className="flex items-center gap-3">
+                            <div className={cn('h-7 w-2 shrink-0 rounded', habitColorClass(h.color))} />
+                            <div className="min-w-0 flex-1">
+                              <div className="mb-1 truncate text-sm font-medium text-foreground">
+                                {h.title}
+                              </div>
+                              <Progress
+                                value={h.rate}
+                                className={cn('h-1.5', habitRateProgressClass(h.rate))}
+                              />
+                            </div>
+                            <div className="shrink-0 text-right">
+                              <div className="text-sm font-bold text-foreground">{h.rate}%</div>
+                              <div className="text-[0.72rem] text-muted-foreground">{h.completedDays}/{h.totalDays}d</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     )}
                   </CardContent>
                 </Card>
               </div>
-
-              {/* Per-habit completion rates */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Habit Completion Rates</CardTitle>
-                  <CardDescription>Days completed in the selected range</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {habitStatsQ.isLoading ? (
-                    <div className="flex flex-col gap-2.5">
-                      {[1, 2, 3].map((i) => <Skeleton key={i} className="h-10 w-full" />)}
-                    </div>
-                  ) : (habitStatsQ.data?.habits ?? []).length === 0 ? (
-                    <div className="py-5 text-center text-sm text-muted-foreground">
-                      No habits tracked yet
-                    </div>
-                  ) : (
-                    <div className="flex flex-col gap-2.5">
-                      {(habitStatsQ.data?.habits ?? []).map((h) => (
-                        <div key={h._id} className="flex items-center gap-3">
-                          <div className={cn('h-7 w-2 shrink-0 rounded', habitColorClass(h.color))} />
-                          <div className="min-w-0 flex-1">
-                            <div className="mb-1 truncate text-sm font-medium text-foreground">
-                              {h.title}
-                            </div>
-                            <Progress
-                              value={h.rate}
-                              className={cn('h-1.5', habitRateProgressClass(h.rate))}
-                            />
-                          </div>
-                          <div className="shrink-0 text-right">
-                            <div className="text-sm font-bold text-foreground">{h.rate}%</div>
-                            <div className="text-[0.72rem] text-muted-foreground">{h.completedDays}/{h.totalDays}d</div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* AI Weekly Review */}
-              <WeeklyReviewCard date={today} />
-            </>
-          )}
+            )}
+          </div>
         </motion.div>
       </PageShell>
     </>

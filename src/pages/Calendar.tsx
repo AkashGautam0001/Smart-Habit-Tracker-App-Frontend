@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
-import { CaretLeftIcon, CaretRightIcon } from '@phosphor-icons/react';
+import { CaretLeftIcon, CaretRightIcon, CalendarBlankIcon } from '@phosphor-icons/react';
 import CalendarGrid from '../components/calendar/CalendarGrid';
 import DayPanel from '../components/calendar/DayPanel';
 import { analyticsApi } from '../api/analytics';
@@ -70,56 +70,25 @@ export default function Calendar() {
 
       <PageShell
         className={cn(
-          'max-w-[900px]',
-          selectedDate && !isMobile && 'grid grid-cols-[1fr_300px] gap-5 space-y-0',
+          !isMobile && 'grid grid-cols-1 items-start justify-center gap-5 space-y-0 lg:grid-cols-[minmax(0,640px)_minmax(0,340px)]',
         )}
       >
         <div className="flex flex-col gap-4">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="icon-sm" asChild>
-                <motion.button whileTap={{ scale: 0.9 }} onClick={prevMonth}>
-                  <CaretLeftIcon size={15} weight="bold" />
-                </motion.button>
-              </Button>
-
-              <h1 className="min-w-40 text-center text-lg font-bold text-foreground">
-                {monthLabel(current)}
-              </h1>
-
-              <Button variant="outline" size="icon-sm" asChild>
-                <motion.button whileTap={{ scale: 0.9 }} onClick={nextMonth}>
-                  <CaretRightIcon size={15} weight="bold" />
-                </motion.button>
-              </Button>
-            </div>
-
-            {!isThisMonth && (
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => { setCurrent(new Date()); setSelected(null); }}
-              >
-                Today
-              </Button>
-            )}
-          </div>
-
           {!isLoading && days.length > 0 && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="grid grid-cols-3 gap-2.5"
+              className="grid grid-cols-3 gap-3"
             >
               {[
-                { label: 'Active days',  value: activeDays },
-                { label: 'Perfect days', value: perfectDays },
-                { label: 'Focus time',   value: totalFocus >= 60 ? `${Math.floor(totalFocus / 60)}h` : `${totalFocus}m` },
+                { label: 'Active days',  value: activeDays,  tint: 'from-primary/10' },
+                { label: 'Perfect days', value: perfectDays, tint: 'from-green-500/10' },
+                { label: 'Focus time',   value: totalFocus >= 60 ? `${Math.floor(totalFocus / 60)}h` : `${totalFocus}m`, tint: 'from-orange-500/10' },
               ].map((s) => (
-                <Card key={s.label} size="sm" className="py-0">
-                  <CardContent className="px-3 py-2.5 text-center">
-                    <div className="text-lg font-bold text-foreground">{s.value}</div>
-                    <div className="mt-0.5 text-[0.7rem] text-muted-foreground">{s.label}</div>
+                <Card key={s.label} size="sm" className={cn('bg-linear-to-br via-card to-card py-0', s.tint)}>
+                  <CardContent className="px-3 py-3 text-center">
+                    <div className="text-xl font-bold text-foreground">{s.value}</div>
+                    <div className="mt-0.5 text-[0.72rem] text-muted-foreground">{s.label}</div>
                   </CardContent>
                 </Card>
               ))}
@@ -128,6 +97,34 @@ export default function Calendar() {
 
           <Card className="py-0">
             <CardContent className="p-4">
+              {/* Month navigation inside the calendar */}
+              <div className="mb-4 flex items-center justify-between">
+                <h1 className="text-base font-bold text-foreground">
+                  {monthLabel(current)}
+                </h1>
+
+                <div className="flex items-center gap-1">
+                  <Button variant="ghost" size="icon-sm" asChild>
+                    <motion.button whileTap={{ scale: 0.9 }} onClick={prevMonth} aria-label="Previous month">
+                      <CaretLeftIcon size={14} weight="bold" />
+                    </motion.button>
+                  </Button>
+                  <Button
+                    variant={isThisMonth ? 'secondary' : 'outline'}
+                    size="sm"
+                    className="h-6.5 px-2 text-[0.7rem]"
+                    onClick={() => { setCurrent(new Date()); setSelected(null); }}
+                  >
+                    Today
+                  </Button>
+                  <Button variant="ghost" size="icon-sm" asChild>
+                    <motion.button whileTap={{ scale: 0.9 }} onClick={nextMonth} aria-label="Next month">
+                      <CaretRightIcon size={14} weight="bold" />
+                    </motion.button>
+                  </Button>
+                </div>
+              </div>
+
               {isLoading ? (
                 <div className="grid grid-cols-7 gap-1">
                   {Array.from({ length: 35 }).map((_, i) => (
@@ -145,11 +142,35 @@ export default function Calendar() {
           </Card>
         </div>
 
-        <DayPanel
-          date={selectedDate}
-          onClose={() => setSelected(null)}
-          isMobile={isMobile}
-        />
+        {isMobile ? (
+          <DayPanel
+            date={selectedDate}
+            onClose={() => setSelected(null)}
+            isMobile
+          />
+        ) : (
+          <div className="min-h-0">
+            {selectedDate ? (
+              <DayPanel
+                date={selectedDate}
+                onClose={() => setSelected(null)}
+                isMobile={false}
+              />
+            ) : (
+              <Card className="sticky top-20">
+                <CardContent className="flex flex-col items-center gap-2.5 px-4 py-10 text-center">
+                  <div className="flex size-11 items-center justify-center rounded-xl border border-border bg-muted/60">
+                    <CalendarBlankIcon size={20} weight="duotone" className="text-muted-foreground/50" />
+                  </div>
+                  <p className="text-sm font-semibold text-foreground">No day selected</p>
+                  <p className="text-[0.72rem] text-muted-foreground">
+                    Click a day on the calendar to see its habits, focus sessions and tasks.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        )}
       </PageShell>
     </>
   );
